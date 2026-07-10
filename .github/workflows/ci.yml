@@ -46,8 +46,21 @@ jobs:
         shell: pwsh
         run: .\toolchain\bootstrap-dependencies.ps1
 
-      - name: Run Phase 0 native gate
+      - name: Run native quality gate
         run: npm run validate
+
+      - name: Capture canonical and shifted native frames
+        shell: pwsh
+        run: |
+          .\toolchain\capture-native.ps1
+          .\toolchain\capture-native.ps1 -Output .\out\captures\native-shifted.png -Metadata .\out\captures\native-shifted.metadata.json -LayoutOffsetXPx 8
+
+      - name: Upload native parity captures
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: phase1-native-captures
+          path: out/captures/native*
+          if-no-files-found: error
 
   wasm-foundation:
     name: Emscripten foundation
@@ -68,6 +81,7 @@ jobs:
           npm install --global npm@11.6.2
           python3 -m pip install --break-system-packages --disable-pip-version-check cmake==4.3.2
           npm ci
+          npx playwright install --with-deps chromium
 
       - name: Install pinned Emscripten SDK
         shell: bash
@@ -82,6 +96,58 @@ jobs:
         run: |
           source .tools/emsdk/emsdk_env.sh
           node scripts/verify-toolchain.mjs --profile wasm
-          emcmake cmake -S . -B build/wasm-foundation -G Ninja -DIMGUI_STUDIO_BUILD_TESTS=ON
-          cmake --build build/wasm-foundation
-          ctest --test-dir build/wasm-foundation --output-on-failure
+          emcmake cmake -S . -B build/wasm-preview -G Ninja -DIMGUI_STUDIO_BUILD_TESTS=ON
+          cmake --build build/wasm-preview
+          ctest --test-dir build/wasm-preview --output-on-failure
+          npm run test:browser
+
+      - name: Upload browser parity capture
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: phase1-browser-capture
+          path: out/captures/browser.*
+          if-no-files-found: error
+
+  phase1-parity:
+    name: Browser/native parity gate
+    needs: [windows-foundation, wasm-foundation]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Configure Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.12.0
+          cache: npm
+
+      - name: Install pinned npm graph
+        run: |
+          npm install --global npm@11.6.2
+          npm ci
+
+      - name: Download browser capture
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          name: phase1-browser-capture
+          path: out/captures
+
+      - name: Download native captures
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+        with:
+          name: phase1-native-captures
+          path: out/captures
+
+      - name: Verify canonical and negative parity fixtures
+        run: |
+          npm run compare:captures
+          node scripts/compare-captures.mjs --native-image out/captures/native-shifted.png --native-metadata out/captures/native-shifted.metadata.json --report out/comparison/phase1-shifted.report.json --difference out/comparison/phase1-shifted.difference.png --expect-failure
+
+      - name: Upload parity reports
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: phase1-parity-reports
+          path: out/comparison
+          if-no-files-found: error

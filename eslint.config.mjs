@@ -30,4 +30,12 @@ export default tseslint.config(
       sourceType: 'module',
     },
   },
+  {
+    files: ['apps/studio-web/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2024,
+      globals: globals.browser,
+      sourceType: 'module',
+    },
+  },
 );

@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://imgui.studio/schemas/inspection/comparison-report-v1.schema.json",
+  "title": "ComparisonReportV1",
+  "description": "Machine-readable Phase 1 browser/native framebuffer parity result.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "gate",
+    "browserImage",
+    "nativeImage",
+    "differenceImage",
+    "geometry",
+    "sourceIdentity",
+    "pixels",
+    "passed"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "gate": { "const": "phase1.browser-native-parity" },
+    "browserImage": { "type": "string", "minLength": 1 },
+    "nativeImage": { "type": "string", "minLength": 1 },
+    "differenceImage": { "type": "string", "minLength": 1 },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tolerancePx", "differences", "maximumDifferencePx", "passed"],
+      "properties": {
+        "tolerancePx": { "type": "number", "minimum": 0 },
+        "differences": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["xPx", "yPx", "widthPx", "heightPx"],
+          "properties": {
+            "xPx": { "type": "number", "minimum": 0 },
+            "yPx": { "type": "number", "minimum": 0 },
+            "widthPx": { "type": "number", "minimum": 0 },
+            "heightPx": { "type": "number", "minimum": 0 }
+          }
+        },
+        "maximumDifferencePx": { "type": "number", "minimum": 0 },
+        "passed": { "type": "boolean" }
+      }
+    },
+    "sourceIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["browserSha256", "nativeSha256", "passed"],
+      "properties": {
+        "browserSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "nativeSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "passed": { "type": "boolean" }
+      }
+    },
+    "pixels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passedDimensions",
+        "browserDimensions",
+        "nativeDimensions",
+        "changedPixels",
+        "meanAbsoluteDifference"
+      ],
+      "properties": {
+        "passedDimensions": { "type": "boolean" },
+        "browserDimensions": { "$ref": "#/$defs/dimensions" },
+        "nativeDimensions": { "$ref": "#/$defs/dimensions" },
+        "changedPixels": { "type": ["integer", "null"], "minimum": 0 },
+        "changedPixelRatio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "meanAbsoluteDifference": { "type": ["number", "null"], "minimum": 0 },
+        "perceptual": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["metric", "meanNormalizedDifference", "similarityScore"],
+          "properties": {
+            "metric": { "const": "weighted-yiq-v1" },
+            "meanNormalizedDifference": { "type": "number", "minimum": 0, "maximum": 1 },
+            "similarityScore": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        }
+      }
+    },
+    "passed": { "type": "boolean" }
+  },
+  "$defs": {
+    "dimensions": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        { "type": "integer", "minimum": 1 },
+        { "type": "integer", "minimum": 1 }
+      ],
+      "items": false
+    }
+  }
+}

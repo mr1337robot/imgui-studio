@@ -1,0 +1,19 @@
+{
+  "schema": "capture-metadata.schema.json",
+  "expectedKeyword": "pattern",
+  "document": {
+    "schemaVersion": 1,
+    "renderer": "directx11",
+    "viewport": { "widthPx": 900, "heightPx": 600, "dpiScaleMilli": 1000 },
+    "framebuffer": { "format": "rgba8", "colorSpace": "srgb" },
+    "sourceSha256": "not-a-sha256",
+    "toggle": {
+      "xPx": 656,
+      "yPx": 324,
+      "widthPx": 58,
+      "heightPx": 30,
+      "enabled": true,
+      "progress": 1
+    }
+  }
+}

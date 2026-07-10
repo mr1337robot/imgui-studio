@@ -1,0 +1,30 @@
+{
+  "schema": "comparison-report.schema.json",
+  "expectedKeyword": "required",
+  "document": {
+    "schemaVersion": 1,
+    "gate": "phase1.browser-native-parity",
+    "browserImage": "browser.png",
+    "nativeImage": "native.png",
+    "differenceImage": "difference.png",
+    "geometry": {
+      "tolerancePx": 2,
+      "differences": { "xPx": 0, "yPx": 0, "widthPx": 0, "heightPx": 0 },
+      "maximumDifferencePx": 0,
+      "passed": true
+    },
+    "pixels": {
+      "passedDimensions": true,
+      "browserDimensions": [900, 600],
+      "nativeDimensions": [900, 600],
+      "changedPixels": 0,
+      "meanAbsoluteDifference": 0,
+      "perceptual": {
+        "metric": "weighted-yiq-v1",
+        "meanNormalizedDifference": 0,
+        "similarityScore": 1
+      }
+    },
+    "passed": true
+  }
+}

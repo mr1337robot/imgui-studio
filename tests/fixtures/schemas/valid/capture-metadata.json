@@ -1,0 +1,21 @@
+{
+  "schema": "capture-metadata.schema.json",
+  "document": {
+    "schemaVersion": 1,
+    "protocolVersion": 1,
+    "type": "studio.preview.frame",
+    "previewInstanceId": "phase1-preview",
+    "renderer": "webgl2",
+    "viewport": { "widthPx": 900, "heightPx": 600, "dpiScaleMilli": 1000 },
+    "framebuffer": { "format": "rgba8", "colorSpace": "srgb" },
+    "sourceSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "toggle": {
+      "xPx": 656,
+      "yPx": 324,
+      "widthPx": 58,
+      "heightPx": 30,
+      "enabled": true,
+      "progress": 1
+    }
+  }
+}

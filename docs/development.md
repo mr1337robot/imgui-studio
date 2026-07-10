@@ -19,6 +19,7 @@ npm run format:check
 npm run format:cpp:check
 npm run test:ts
 npm run test:cpp
+npm run test:comparison
 ```
 
 ## Generated contracts
@@ -45,6 +46,29 @@ ctest --preset native-msvc
 
 Studio-owned C++ compiles as C++20 with warnings as errors. Build output is isolated under
 `build/`.
+
+## Phase 1 preview and parity workflow
+
+Build and test the real WebAssembly/WebGL2 preview from an Emscripten-enabled PowerShell:
+
+```powershell
+. .\.tools\emsdk\emsdk_env.ps1
+.\toolchain\emscripten\build-preview.ps1
+npm run test:browser
+```
+
+For interactive development, run `npm run preview:serve` and open
+`http://127.0.0.1:4173`. The Studio shell and preview use separate loopback origins.
+
+Build the Win32/DirectX 11 host, capture the same starter source, and compare:
+
+```powershell
+.\toolchain\capture-native.ps1
+npm run compare:captures
+```
+
+Generated captures, metadata, reports, and PNG differences remain under ignored `out/`
+directories. Do not update a visual expectation without reviewing its diff and provenance.
 
 ## Troubleshooting
 

@@ -9,8 +9,10 @@ in native exports. HTML or JSON widget recreations are not the source of truth.
 
 ## Status
 
-Phase 0 establishes the reproducible repository, pinned toolchain, quality gates, and v1 schema
-contracts. The rendering preview and custom widget vertical slice begin in Phase 1.
+Phase 1 is complete. The repository renders one shared, custom animated C++ toggle through real
+Dear ImGui in WebAssembly/WebGL2 and Windows/DirectX 11, captures both framebuffers, and enforces
+source identity plus a two-pixel geometry parity gate. See
+[docs/phase-1-completion.md](docs/phase-1-completion.md) for evidence and remaining boundaries.
 
 ## Prerequisites
 
@@ -38,7 +40,8 @@ Install and verify browser tooling:
 .\toolchain\bootstrap-emscripten.ps1
 . .\.tools\emsdk\emsdk_env.ps1
 node .\scripts\verify-toolchain.mjs --profile wasm
-.\toolchain\emscripten\configure.ps1
+.\toolchain\emscripten\build-preview.ps1
+npm run test:browser
 ```
 
 Fetch and verify the pinned Dear ImGui source for development:
@@ -52,9 +55,12 @@ Fetch and verify the pinned Dear ImGui source for development:
 | Command                    | Purpose                                                  |
 | -------------------------- | -------------------------------------------------------- |
 | `npm ci`                   | Reproduce the pinned npm dependency graph                |
-| `npm run validate`         | Run the complete native Phase 0 quality gate             |
+| `npm run validate`         | Run the complete native quality gate                     |
 | `npm run test:ts`          | Run TypeScript/schema contract tests                     |
-| `npm run test:cpp`         | Configure, build, and run the native C++ foundation test |
+| `npm run test:cpp`         | Build and test the C++ foundation and native parity host |
+| `npm run test:browser`     | Exercise and capture the real WASM preview in Chromium   |
+| `npm run compare:captures` | Compare browser/native captures and write a PNG diff     |
+| `npm run preview:serve`    | Serve the shell and preview on separate loopback origins |
 | `npm run schemas:generate` | Regenerate TypeScript types from canonical JSON Schemas  |
 | `npm run schemas:check`    | Fail if generated schema types are stale                 |
 | `npm run licenses:check`   | Fail if npm dependency license inventory is stale        |

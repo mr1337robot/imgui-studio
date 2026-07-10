@@ -16,12 +16,24 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/toolchain/cmake")
 include(StudioWarnings)
-
-add_subdirectory(runtime)
+include(Dependencies)
 
 if(IMGUI_STUDIO_BUILD_TESTS)
     include(CTest)
     enable_testing()
-    add_subdirectory(tests)
 endif()
 
+studio_configure_dear_imgui()
+
+add_subdirectory(runtime)
+add_subdirectory(examples/starter)
+
+if(EMSCRIPTEN)
+    add_subdirectory(runtime/browser)
+elseif(WIN32)
+    add_subdirectory(runtime/native)
+endif()
+
+if(IMGUI_STUDIO_BUILD_TESTS)
+    add_subdirectory(tests)
+endif()

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://imgui.studio/schemas/inspection/capture-metadata-v1.schema.json",
+  "title": "CaptureMetadataV1",
+  "description": "Canonical metadata paired with a Phase 1 browser or native framebuffer capture.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "renderer", "viewport", "framebuffer", "sourceSha256", "toggle"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "protocolVersion": { "const": 1 },
+    "type": { "const": "studio.preview.frame" },
+    "previewInstanceId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "renderer": { "enum": ["webgl2", "directx11"] },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widthPx", "heightPx", "dpiScaleMilli"],
+      "properties": {
+        "widthPx": { "type": "integer", "minimum": 1, "maximum": 8192 },
+        "heightPx": { "type": "integer", "minimum": 1, "maximum": 8192 },
+        "dpiScaleMilli": { "type": "integer", "minimum": 1, "maximum": 8000 }
+      }
+    },
+    "framebuffer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "colorSpace"],
+      "properties": {
+        "format": { "const": "rgba8" },
+        "colorSpace": { "const": "srgb" }
+      }
+    },
+    "sourceSha256": {
+      "description": "SHA-256 identity derived from the shared starter implementation and public header.",
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "layoutOffsetXPx": { "type": "number" },
+    "toggle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["xPx", "yPx", "widthPx", "heightPx", "enabled", "progress"],
+      "properties": {
+        "xPx": { "type": "number" },
+        "yPx": { "type": "number" },
+        "widthPx": { "type": "number", "exclusiveMinimum": 0 },
+        "heightPx": { "type": "number", "exclusiveMinimum": 0 },
+        "enabled": { "type": "boolean" },
+        "progress": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}

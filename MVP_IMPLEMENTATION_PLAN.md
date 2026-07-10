@@ -88,6 +88,9 @@ Acceptance:
 
 ## 5. Phase 1 — Browser/native rendering spine
 
+**Status: complete.** The gate evidence, commands, and remaining external CI boundary are recorded
+in [`docs/phase-1-completion.md`](docs/phase-1-completion.md).
+
 ### WP1.1 Shared custom widget fixture
 
 Tasks:

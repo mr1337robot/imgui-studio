@@ -498,16 +498,51 @@ Expected subsystem documentation includes `apps/studio-web/README.md`, `apps/stu
 
 ### Code documentation
 
+- Treat code comments as part of the product. Production code must be approachable to a motivated
+  beginner while remaining technically useful to an experienced engineer reviewing invariants,
+  tradeoffs, and failure behavior.
+- Begin each non-trivial implementation file with a concise module comment when its role, execution
+  environment, or relationship to another process is not obvious from the filename. Explain where
+  the file sits in the system and what it deliberately does not own.
 - Document every public C++ type, function, enum, option structure, callback, and non-obvious constant with Doxygen-compatible comments.
 - Document every exported TypeScript type, function, class, service interface, schema entry point, and React component contract with TSDoc where the name and type alone are insufficient.
 - Public documentation must explain purpose, parameters, return value, ownership, lifetime, units, thread affinity, mutation, errors, determinism, and invalidation where relevant.
 - Document protocol and schema fields in their machine-readable schema descriptions as well as the normative Markdown contract.
 - Add file or module comments only when they explain responsibility, invariants, or architecture; do not add ceremonial headers.
 - Inline comments should explain why a decision or algorithm is necessary, not restate the code.
+- Explain unfamiliar framework and platform patterns at their first important use. Examples include
+  Dear ImGui's immediate-mode lifecycle and ID rules, draw-list coordinate spaces, Emscripten
+  JavaScript bridges, browser transferable objects, Win32 message dispatch, COM ownership, DX11
+  staging textures and row pitch, and subprocess cancellation. Do not assume prior experience with
+  the repository's least familiar technology.
+- Use short section comments to make long functions scannable when they cross meaningful phases
+  such as validate, acquire, render, capture, commit, and clean up. A section comment must explain
+  the phase's invariant or purpose, not merely repeat the next function call.
+- For every non-obvious algorithm, document the input domain, units, coordinate system, numerical
+  bounds, and reason it was chosen. Include a compact derivation or authoritative reference for
+  animation response curves, color transforms, image metrics, hashing, and geometry normalization.
+- At trust boundaries, explain what is untrusted, what validation or confinement is performed, and
+  why a rejected value cannot be used safely. Keep the comment beside the enforcing code.
+- At resource and lifetime boundaries, explain who owns the resource, which operation releases it,
+  and how cleanup remains correct on early return, cancellation, and failure when this is not
+  obvious from RAII alone.
+- Examples and tests should include comments that teach the behavior under test, especially when a
+  fixture represents a security regression, deterministic invariant, platform quirk, or deliberate
+  failure. Tests should not be densely narrated line by line.
 - Document unusual math, animation equations, hashing, image comparison, cache invalidation, and security-sensitive normalization with references or derivations.
 - Place comments next to the invariant they protect and keep them updated in the same change.
 - Prefer clearer code over comments that compensate for confusing code.
 - Do not narrate obvious assignments, loops, or control flow.
+
+Before declaring a code change complete, perform a documentation pass and ask:
+
+- Can an engineer new to Dear ImGui, WebAssembly, DX11, or the local service understand the control
+  flow without external archaeology?
+- Are public contracts and the non-obvious private invariants documented where they are enforced?
+- Are units, ownership, thread/process affinity, coordinate spaces, and error behavior clear?
+- Do comments explain why the code has this shape and remain accurate after the change?
+
+If a relevant answer is no, the implementation is not complete.
 
 Example public C++ documentation:
 

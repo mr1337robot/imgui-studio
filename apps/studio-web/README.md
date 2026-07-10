@@ -1,7 +1,9 @@
 # Studio Web Application
 
-The Studio web application will own presentation state, source editing, preview hosting,
-inspection, reference comparison, and animation controls. It is never authoritative for project
-files, revisions, builds, artifacts, or exports.
+The Phase 1 Studio shell owns preview presentation state and capture controls. It embeds the real
+WASM preview from a dedicated loopback origin in a sandboxed iframe and validates the v1
+ready/frame/capture message flow. It is never authoritative for project files, revisions, builds,
+artifacts, or exports.
 
-Implementation begins after the Phase 1 rendering spine. See `TECHNICAL_DESIGN.md` section 6.1.
+Run it with `npm run preview:serve` after building the browser target. Source editing, inspection,
+and animation controls arrive in later phases. See `TECHNICAL_DESIGN.md` section 6.1.
