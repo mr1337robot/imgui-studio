@@ -1,84 +1,319 @@
-// The Studio shell is presentation-only in Phase 1. It observes the isolated preview protocol and
-// asks the local capture endpoint to persist artifacts; it does not own project or build state.
-const previewOrigin = 'http://127.0.0.1:4174';
-const iframe = document.querySelector('#preview');
-const status = document.querySelector('#preview-status');
-const renderer = document.querySelector('#renderer-value');
-const geometry = document.querySelector('#geometry-value');
-const captureButton = document.querySelector('#capture-button');
-const captureStatus = document.querySelector('#capture-status');
+// Phase 2 web client: Monaco owns transient editor state, while every canonical read, revision,
+// build, and preview identity comes from the authenticated local service.
+const bootstrap = globalThis.__studioBootstrap;
+if (!bootstrap?.token) throw new Error('The trusted service bootstrap token is missing.');
 
-let lastFrame = null;
+const elements = Object.fromEntries(
+  [
+    'project-name',
+    'revision-status',
+    'preview-status',
+    'save-button',
+    'build-button',
+    'stale-indicator',
+    'project-tree',
+    'active-path',
+    'editor-state',
+    'build-status',
+    'build-timing',
+    'diagnostics',
+    'preview',
+    'preview-empty',
+    'geometry-value',
+  ].map((id) => [id, document.getElementById(id)]),
+);
 
-window.addEventListener('message', async (event) => {
-  // postMessage payloads are untrusted even on localhost: an unrelated page can attempt to contact
-  // the service. Require both the dedicated origin and the exact iframe Window before inspecting
-  // the versioned message envelope.
-  if (event.origin !== previewOrigin || event.source !== iframe.contentWindow) {
+let project;
+let activeFile;
+let editor;
+let suppressEditorChange = false;
+
+await authorizePreviewOrigin();
+await initializeProject();
+
+window.addEventListener('message', (event) => {
+  if (event.origin !== 'http://127.0.0.1:4174' || event.source !== elements.preview.contentWindow)
     return;
-  }
   const message = event.data;
-  if (!message || message.protocolVersion !== 1 || typeof message.type !== 'string') {
-    return;
-  }
-
+  if (!message || message.protocolVersion !== 1 || typeof message.type !== 'string') return;
   if (message.type === 'studio.preview.ready') {
-    status.textContent = 'Preview ready';
-    status.classList.remove('status-loading');
-    status.classList.add('status-ready');
-    renderer.textContent = message.renderer;
-    captureButton.disabled = false;
-  } else if (message.type === 'studio.preview.frame') {
-    lastFrame = message;
-    const toggle = message.toggle;
-    geometry.textContent = `${toggle.xPx.toFixed(1)}, ${toggle.yPx.toFixed(1)} · ${toggle.widthPx.toFixed(1)} × ${toggle.heightPx.toFixed(1)}`;
-  } else if (message.type === 'studio.capture.completed') {
-    await saveCapture(message);
-  } else if (message.type === 'studio.capture.failed') {
-    captureStatus.textContent = 'Capture failed in preview.';
-    captureButton.disabled = false;
+    elements['preview-status'].textContent = 'Preview ready';
+    elements['preview-status'].className = 'status status-ready';
+  } else if (message.type === 'studio.preview.frame' && message.toggle) {
+    const bounds = message.toggle;
+    elements['geometry-value'].textContent =
+      `${bounds.xPx.toFixed(1)}, ${bounds.yPx.toFixed(1)} · ${bounds.widthPx.toFixed(1)} × ${bounds.heightPx.toFixed(1)}`;
   }
 });
 
-captureButton.addEventListener('click', () => {
-  // Target a concrete origin rather than "*" so capture requests cannot be delivered if the frame
-  // is navigated away from the dedicated preview server.
-  captureButton.disabled = true;
-  captureStatus.textContent = 'Capturing canonical framebuffer…';
-  iframe.contentWindow.postMessage(
-    {
-      protocolVersion: 1,
-      type: 'studio.capture.request',
-      requestId: crypto.randomUUID(),
-    },
-    previewOrigin,
-  );
-});
+elements['save-button'].addEventListener('click', () => void saveActiveFile());
+elements['build-button'].addEventListener('click', () => void buildPreview());
 
-async function saveCapture(message) {
-  // Capture bytes are transferred from the iframe as an ArrayBuffer. The frame snapshot travels
-  // beside them so the PNG is never persisted without the geometry/provenance it represents.
-  const metadata = message.frame ?? lastFrame;
-  if (!metadata || !(message.bytes instanceof ArrayBuffer)) {
-    captureStatus.textContent = 'Capture response was incomplete.';
-    captureButton.disabled = false;
-    return;
-  }
+async function initializeProject() {
+  const listing = await api('/api/v1/projects');
+  if (listing.projects.length !== 1) throw new Error('Phase 2 expects exactly one active project.');
+  project = await api(`/api/v1/projects/${listing.projects[0].projectId}`);
+  renderProjectState();
+  renderProjectTree();
+  await initializeMonaco();
+  const preferred = project.files.find((file) => file.path === 'src/menu.cpp') ?? project.files[0];
+  if (preferred) await openFile(preferred.path);
+  if (project.currentPreview) await loadPreview(project.currentPreview);
+}
 
-  // Phase 1 uses a bounded loopback endpoint. The metadata header is base64 because request header
-  // values cannot safely carry arbitrary JSON characters; the server decodes and validates it.
-  const response = await fetch('/api/captures/browser', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'image/png',
-      'X-Studio-Metadata': btoa(JSON.stringify(metadata)),
-    },
-    body: message.bytes,
+async function initializeMonaco() {
+  globalThis.require.config({ paths: { vs: '/vendor/monaco/vs' } });
+  const monaco = await new Promise((resolvePromise) => {
+    // The pinned Monaco AMD distribution packages the editor API and language contributions in one
+    // reviewed local bundle. No CDN or runtime network dependency is permitted.
+    globalThis.require(['vs/editor/editor.main'], () => resolvePromise(globalThis.monaco));
   });
-  if (!response.ok) {
-    captureStatus.textContent = `Capture save failed (${response.status}).`;
-  } else {
-    captureStatus.textContent = 'Saved out/captures/browser.png';
+  editor = monaco.editor.create(document.getElementById('editor'), {
+    automaticLayout: true,
+    fontFamily: 'Cascadia Code, Consolas, monospace',
+    fontSize: 12,
+    language: 'cpp',
+    minimap: { enabled: false },
+    padding: { top: 12 },
+    scrollBeyondLastLine: false,
+    theme: 'vs-dark',
+  });
+  editor.onDidChangeModelContent(() => {
+    if (suppressEditorChange || !activeFile) return;
+    elements['editor-state'].textContent =
+      editor.getValue() === activeFile.content ? 'Clean' : 'Modified';
+    elements['save-button'].disabled = editor.getValue() === activeFile.content;
+  });
+}
+
+function renderProjectState() {
+  elements['project-name'].textContent = project.name;
+  elements['revision-status'].textContent = `Revision ${project.currentRevision}`;
+  elements['build-button'].disabled = false;
+  const stale = project.currentPreview?.projectRevision !== project.currentRevision;
+  elements['stale-indicator'].hidden = !stale;
+  if (stale) {
+    elements['preview-status'].textContent = 'Working preview · stale';
+    elements['preview-status'].className = 'status status-failed';
   }
-  captureButton.disabled = false;
+}
+
+function renderProjectTree() {
+  elements['project-tree'].replaceChildren(
+    ...project.files.map((file) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'file-button';
+      button.textContent = file.path;
+      button.title = file.path;
+      button.dataset.path = file.path;
+      button.addEventListener('click', () => void openFile(file.path));
+      return button;
+    }),
+  );
+}
+
+async function openFile(path) {
+  if (
+    activeFile &&
+    editor.getValue() !== activeFile.content &&
+    !confirm('Discard unsaved editor changes?')
+  )
+    return;
+  const response = await api(`/api/v1/projects/${project.projectId}/files:read`, {
+    method: 'POST',
+    body: { paths: [path], expectedRevision: project.currentRevision, includeContent: true },
+  });
+  activeFile = response.files[0];
+  suppressEditorChange = true;
+  editor.setValue(activeFile.content);
+  suppressEditorChange = false;
+  elements['active-path'].textContent = activeFile.path;
+  elements['editor-state'].textContent = 'Clean';
+  elements['save-button'].disabled = true;
+  for (const button of elements['project-tree'].querySelectorAll('.file-button')) {
+    button.classList.toggle('active', button.dataset.path === path);
+  }
+}
+
+async function saveActiveFile() {
+  const nextContent = editor.getValue();
+  if (!activeFile || nextContent === activeFile.content) return;
+  setBusy(true);
+  try {
+    const result = await api(`/api/v1/projects/${project.projectId}/files:patch`, {
+      method: 'POST',
+      mutation: true,
+      body: {
+        expectedRevision: project.currentRevision,
+        patches: [
+          {
+            path: activeFile.path,
+            expectedSha256: activeFile.sha256,
+            unifiedDiff: createMinimalUnifiedDiff(activeFile.content, nextContent),
+          },
+        ],
+        reason: 'Studio editor save',
+      },
+    });
+    project.currentRevision = result.revision;
+    activeFile = {
+      ...activeFile,
+      content: nextContent,
+      sha256: result.postimageSha256[activeFile.path],
+      revision: result.revision,
+    };
+    elements['editor-state'].textContent = 'Clean';
+    renderProjectState();
+  } catch (error) {
+    showClientError(error);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function buildPreview() {
+  if (activeFile && editor.getValue() !== activeFile.content) await saveActiveFile();
+  setBusy(true);
+  clearDiagnostics();
+  try {
+    const start = await api(`/api/v1/projects/${project.projectId}/builds`, {
+      method: 'POST',
+      mutation: true,
+      body: {
+        expectedRevision: project.currentRevision,
+        configuration: 'preview-debug',
+        supersedeQueued: true,
+      },
+    });
+    let build = start.build;
+    while (!['succeeded', 'failed', 'cancelled'].includes(build.status)) {
+      elements['build-status'].textContent = `Build ${build.status}…`;
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
+      ({ build } = await api(`/api/v1/projects/${project.projectId}/builds/${build.buildId}`));
+    }
+    renderBuild(build);
+    if (build.status === 'succeeded') {
+      project = await api(`/api/v1/projects/${project.projectId}`);
+      renderProjectState();
+      await loadPreview(project.currentPreview);
+    } else {
+      // The iframe is intentionally untouched on failure. Marking it stale tells the user that the
+      // visible menu is still the last known-good build rather than the broken working revision.
+      elements['stale-indicator'].hidden = false;
+      elements['preview-status'].textContent = 'Last working preview · stale';
+      elements['preview-status'].className = 'status status-failed';
+    }
+  } catch (error) {
+    showClientError(error);
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function loadPreview(preview) {
+  if (!preview) return;
+  elements['preview-status'].textContent = 'Loading replacement…';
+  elements['preview-status'].className = 'status status-loading';
+  elements['preview-empty'].hidden = true;
+  elements.preview.src = preview.url;
+}
+
+function renderBuild(build) {
+  elements['build-status'].textContent = `Build ${build.status}`;
+  const totalMs = Object.values(build.phaseDurationsMs).reduce((total, value) => total + value, 0);
+  elements['build-timing'].textContent =
+    `${Math.round(totalMs)} ms · stable cache ${build.cache.stableObjectsReused ? 'warm' : 'cold'}`;
+  elements.diagnostics.replaceChildren(
+    ...build.diagnostics.map((diagnostic) => {
+      const item = document.createElement('li');
+      item.textContent = `${diagnostic.relativePath ?? 'build'}:${diagnostic.line ?? 0}:${diagnostic.column ?? 0} ${diagnostic.code} ${diagnostic.message}`;
+      return item;
+    }),
+  );
+}
+
+function createMinimalUnifiedDiff(before, after) {
+  const oldLines = logicalLines(before);
+  const newLines = logicalLines(after);
+  let prefix = 0;
+  while (
+    prefix < oldLines.length &&
+    prefix < newLines.length &&
+    oldLines[prefix] === newLines[prefix]
+  )
+    prefix += 1;
+  let suffix = 0;
+  while (
+    suffix < oldLines.length - prefix &&
+    suffix < newLines.length - prefix &&
+    oldLines[oldLines.length - suffix - 1] === newLines[newLines.length - suffix - 1]
+  )
+    suffix += 1;
+  const contextStart = Math.max(0, prefix - 3);
+  const oldChangeEnd = oldLines.length - suffix;
+  const newChangeEnd = newLines.length - suffix;
+  const trailingContext = Math.min(3, suffix);
+  const oldEnd = oldChangeEnd + trailingContext;
+  const newEnd = newChangeEnd + trailingContext;
+  const oldCount = oldEnd - contextStart;
+  const newCount = newEnd - contextStart;
+  const body = [
+    ...oldLines.slice(contextStart, prefix).map((line) => ` ${line}`),
+    ...oldLines.slice(prefix, oldChangeEnd).map((line) => `-${line}`),
+    ...newLines.slice(prefix, newChangeEnd).map((line) => `+${line}`),
+    ...oldLines.slice(oldChangeEnd, oldEnd).map((line) => ` ${line}`),
+  ];
+  return `--- a/${activeFile.path}\n+++ b/${activeFile.path}\n@@ -${contextStart + 1},${oldCount} +${contextStart + 1},${newCount} @@\n${body.join('\n')}\n`;
+}
+
+function logicalLines(content) {
+  const normalized = content.replaceAll('\r\n', '\n');
+  const withoutTrailing = normalized.endsWith('\n') ? normalized.slice(0, -1) : normalized;
+  return withoutTrailing.length === 0 ? [] : withoutTrailing.split('\n');
+}
+
+async function authorizePreviewOrigin() {
+  const response = await fetch('http://127.0.0.1:4174/api/authorize', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { Authorization: `Bearer ${bootstrap.token}` },
+  });
+  if (!response.ok) throw new Error('Unable to authorize the isolated preview origin.');
+}
+
+async function api(path, options = {}) {
+  const headers = { Accept: 'application/json' };
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  if (options.mutation) {
+    headers.Authorization = `Bearer ${bootstrap.token}`;
+    headers['Idempotency-Key'] = crypto.randomUUID();
+  }
+  const response = await fetch(path, {
+    method: options.method ?? 'GET',
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  });
+  const body = await response.json();
+  if (!response.ok)
+    throw new Error(
+      `${body.error?.code ?? response.status}: ${body.error?.message ?? 'Request failed'}`,
+    );
+  return body;
+}
+
+function setBusy(busy) {
+  elements['build-button'].disabled = busy;
+  elements['save-button'].disabled =
+    busy || !activeFile || editor.getValue() === activeFile.content;
+}
+
+function clearDiagnostics() {
+  elements.diagnostics.replaceChildren();
+  elements['build-timing'].textContent = '';
+}
+
+function showClientError(error) {
+  elements['build-status'].textContent =
+    error instanceof Error ? error.message : 'Unexpected client error.';
 }

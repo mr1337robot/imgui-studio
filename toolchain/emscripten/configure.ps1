@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [string]$BuildDirectory = (Join-Path $PSScriptRoot '..\..\build\wasm-foundation')
+    [string]$BuildDirectory = (Join-Path $PSScriptRoot '..\..\build\wasm-foundation'),
+    [string]$StarterSourceDirectory = (Join-Path $PSScriptRoot '..\..\examples\starter')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -11,6 +12,7 @@ if (-not (Get-Command emcmake -ErrorAction SilentlyContinue)) {
 
 $RepositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $ResolvedBuildDirectory = [System.IO.Path]::GetFullPath($BuildDirectory)
+$ResolvedStarterSourceDirectory = [System.IO.Path]::GetFullPath($StarterSourceDirectory)
 $BuildRoot = [System.IO.Path]::GetFullPath((Join-Path $RepositoryRoot 'build'))
 $BuildRootPrefix = $BuildRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
 
@@ -18,11 +20,16 @@ if (-not $ResolvedBuildDirectory.StartsWith($BuildRootPrefix, [System.StringComp
     throw "BuildDirectory must remain under $BuildRoot"
 }
 
+$RepositoryRootPrefix = $RepositoryRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+if (-not $ResolvedStarterSourceDirectory.StartsWith($RepositoryRootPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "StarterSourceDirectory must remain under $RepositoryRoot"
+}
+
 if (-not (Get-Command nmake.exe -ErrorAction SilentlyContinue)) {
     throw 'nmake.exe is unavailable. Run from a Visual Studio 2022 developer PowerShell.'
 }
 
-& emcmake cmake -S $RepositoryRoot -B $ResolvedBuildDirectory -G 'NMake Makefiles' -DIMGUI_STUDIO_BUILD_TESTS=ON
+& emcmake cmake -S $RepositoryRoot -B $ResolvedBuildDirectory -G 'NMake Makefiles' -DIMGUI_STUDIO_BUILD_TESTS=ON "-DIMGUI_STUDIO_STARTER_SOURCE_DIR=$ResolvedStarterSourceDirectory"
 if ($LASTEXITCODE -ne 0) {
     throw 'Emscripten CMake configuration failed.'
 }

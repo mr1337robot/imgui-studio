@@ -56,11 +56,19 @@
         // loopback port used by Phase 1. It is never copied blindly into postMessage targets.
         const parameters = new URLSearchParams(window.location.search);
         const parentOrigin = parameters.get('parentOrigin');
-        if (!/^http:\/\/(?:127\.0\.0\.1|localhost):4173$/.test(parentOrigin ?? '')) {
+        if (!/^http:\/\/(?:127\.0\.0\.1|localhost):[1-9][0-9]{0,4}$/.test(parentOrigin ?? '')) {
           document.getElementById('status').textContent = 'Invalid parent origin';
           throw new Error('Preview requires the configured Studio loopback origin.');
         }
         window.__studioParentOrigin = parentOrigin;
+        // Phase 2 supplies immutable build/revision identity through the service-generated iframe
+        // URL. Phase 1 standalone tooling omits it and receives explicit fixture identities.
+        window.__studioIdentity = {
+          projectId: parameters.get('projectId') ?? 'prj_phase1_fixture',
+          projectRevision: parameters.get('projectRevision') ?? '0',
+          buildId: parameters.get('buildId') ?? 'bld_phase1_fixture',
+          previewInstanceId: parameters.get('previewInstanceId') ?? 'prv_phase1_fixture',
+        };
         window.__studioLastFrame = null;
         window.__studioCaptureRequest = null;
 

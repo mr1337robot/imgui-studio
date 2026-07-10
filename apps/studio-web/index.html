@@ -3,64 +3,72 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self'; frame-src http://127.0.0.1:4174; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'"
-    />
-    <title>ImGui Studio — Phase 1</title>
+    <title>ImGui Studio — Phase 2</title>
     <link rel="stylesheet" href="/styles.css" />
+    <script nonce="__STUDIO_CSP_NONCE__">
+      globalThis.__studioBootstrap = { token: '__STUDIO_SESSION_TOKEN__' };
+    </script>
+    <script src="/vendor/monaco/vs/loader.js"></script>
   </head>
   <body>
     <main class="shell">
       <header class="topbar">
         <div>
           <p class="eyebrow">IMGUI STUDIO</p>
-          <h1>Real C++ preview</h1>
+          <h1 id="project-name">Loading project…</h1>
         </div>
         <div class="status-group">
-          <span id="preview-status" class="status status-loading">Connecting</span>
-          <button id="capture-button" type="button" disabled>Capture framebuffer</button>
+          <span id="revision-status" class="status">Revision —</span>
+          <span id="preview-status" class="status status-loading">No preview</span>
+          <button id="save-button" type="button" disabled>Save</button>
+          <button id="build-button" type="button" disabled>Build preview</button>
         </div>
       </header>
 
-      <section class="workspace" aria-label="Phase 1 preview workspace">
-        <aside class="rail">
-          <h2>Rendering spine</h2>
-          <dl>
-            <div>
-              <dt>Source</dt>
-              <dd>Shared C++20</dd>
-            </div>
-            <div>
-              <dt>Renderer</dt>
-              <dd id="renderer-value">Waiting</dd>
-            </div>
-            <div>
-              <dt>Viewport</dt>
-              <dd>900 × 600</dd>
-            </div>
-            <div>
-              <dt>Protocol</dt>
-              <dd>v1</dd>
-            </div>
-          </dl>
-          <div class="geometry">
-            <h3>Toggle geometry</h3>
-            <output id="geometry-value">Waiting for first frame…</output>
+      <section class="workspace" aria-label="Phase 2 edit and preview workspace">
+        <aside class="project-panel">
+          <div class="panel-heading">
+            <span>PROJECT</span>
+            <span id="stale-indicator" class="stale-indicator" hidden>PREVIEW STALE</span>
           </div>
-          <p id="capture-status" class="capture-status">No capture saved.</p>
+          <nav id="project-tree" aria-label="Project files"></nav>
         </aside>
 
-        <div class="preview-frame">
-          <iframe
-            id="preview"
-            title="Sandboxed Dear ImGui WebAssembly preview"
-            src="http://127.0.0.1:4174/preview.html?parentOrigin=http://127.0.0.1:4173"
-            sandbox="allow-scripts allow-same-origin"
-            width="900"
-            height="600"
-          ></iframe>
-        </div>
+        <section class="editor-panel" aria-label="C++ source editor">
+          <div class="editor-heading">
+            <span id="active-path">Select a file</span>
+            <span id="editor-state">Clean</span>
+          </div>
+          <div id="editor" aria-label="Monaco C++ editor"></div>
+          <section class="build-output" aria-live="polite">
+            <div class="build-summary">
+              <strong id="build-status">Build has not run.</strong>
+              <span id="build-timing"></span>
+            </div>
+            <ol id="diagnostics"></ol>
+          </section>
+        </section>
+
+        <section class="preview-panel" aria-label="Real Dear ImGui preview">
+          <div class="preview-heading">
+            <span>WEBASSEMBLY / WEBGL2</span>
+            <output id="geometry-value">Waiting for preview</output>
+          </div>
+          <div class="preview-frame">
+            <iframe
+              id="preview"
+              title="Sandboxed Dear ImGui WebAssembly preview"
+              src="about:blank"
+              sandbox="allow-scripts allow-same-origin"
+              width="900"
+              height="600"
+            ></iframe>
+            <div id="preview-empty" class="preview-empty">
+              <strong>No successful build yet</strong>
+              <span>Build the project to load the first immutable preview.</span>
+            </div>
+          </div>
+        </section>
       </section>
     </main>
     <script type="module" src="/app.js"></script>

@@ -151,6 +151,9 @@ Acceptance:
 
 ## 6. Phase 2 — Local service and edit/build loop
 
+**Status: complete.** Evidence, measurements, and remaining release-level performance work are
+recorded in [`docs/phase-2-completion.md`](docs/phase-2-completion.md).
+
 ### WP2.1 Project service
 
 Tasks:

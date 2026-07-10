@@ -30,7 +30,31 @@
     "completedAt": { "type": ["string", "null"], "format": "date-time" },
     "smokePassed": { "type": ["boolean", "null"] },
     "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } },
-    "artifacts": { "type": "array", "items": { "$ref": "#/$defs/artifact" } }
+    "artifacts": { "type": "array", "items": { "$ref": "#/$defs/artifact" } },
+    "phaseDurationsMs": {
+      "type": "object",
+      "additionalProperties": { "type": "number", "minimum": 0 }
+    },
+    "cache": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projectSourcesChanged",
+        "stableObjectsReused",
+        "corruptionRecovered",
+        "assetBundleReused"
+      ],
+      "properties": {
+        "projectSourcesChanged": { "type": "boolean" },
+        "stableObjectsReused": { "type": "boolean" },
+        "corruptionRecovered": { "type": "boolean" },
+        "assetBundleReused": { "type": "boolean" }
+      }
+    },
+    "previewArtifacts": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    }
   },
   "$defs": {
     "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },

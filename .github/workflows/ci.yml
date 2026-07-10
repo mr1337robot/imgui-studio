@@ -15,9 +15,9 @@ concurrency:
 
 jobs:
   windows-foundation:
-    name: Windows native foundation
+    name: Windows native and Phase 2 service
     runs-on: windows-2025
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Check out source
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -42,6 +42,9 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Install Chromium for service smoke and Studio tests
+        run: npx playwright install chromium
+
       - name: Fetch and verify pinned Dear ImGui source
         shell: pwsh
         run: .\toolchain\bootstrap-dependencies.ps1
@@ -54,6 +57,26 @@ jobs:
         run: |
           .\toolchain\capture-native.ps1
           .\toolchain\capture-native.ps1 -Output .\out\captures\native-shifted.png -Metadata .\out\captures\native-shifted.metadata.json -LayoutOffsetXPx 8
+
+      - name: Install pinned Emscripten SDK
+        shell: pwsh
+        run: .\toolchain\bootstrap-emscripten.ps1
+
+      - name: Run Phase 2 edit-build-preview gates
+        shell: pwsh
+        run: |
+          . .\.tools\emsdk\emsdk_env.ps1
+          npm run test:phase2
+          npm run test:studio
+
+      - name: Upload Phase 2 evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: phase2-edit-build-preview
+          path: |
+            out/phase2-integration/report.json
+            out/phase2-studio-test/*.png
+          if-no-files-found: error
 
       - name: Upload native parity captures
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

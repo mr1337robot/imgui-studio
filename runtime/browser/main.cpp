@@ -27,11 +27,12 @@ struct Application {
 // this edge prevents browser types and postMessage details from leaking into shared project code.
 // clang-format off
 EM_JS(void, PostReady, (), {
+    const identity = window.__studioIdentity;
     window.parent.postMessage(
         {
             protocolVersion: 1,
             type: 'studio.preview.ready',
-            previewInstanceId: 'phase1-preview',
+            ...identity,
             renderer: 'webgl2',
             viewport: { widthPx: 900, heightPx: 600, dpiScaleMilli: 1000 },
         },
@@ -41,10 +42,11 @@ EM_JS(void, PostReady, (), {
 
 EM_JS(void, PostFrame,
       (const char* sourceSha256, int enabled, float progress, float xPx, float yPx, float widthPx, float heightPx), {
+          const identity = window.__studioIdentity;
           const frame = {
               protocolVersion: 1,
               type: 'studio.preview.frame',
-              previewInstanceId: 'phase1-preview',
+              ...identity,
               renderer: 'webgl2',
               viewport: { widthPx: 900, heightPx: 600, dpiScaleMilli: 1000 },
               framebuffer: { format: 'rgba8', colorSpace: 'srgb' },

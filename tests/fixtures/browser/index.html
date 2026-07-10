@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ImGui Studio Browser Fixture</title>
+  </head>
+  <body>
+    <!-- This intentionally small shell isolates Phase 1 renderer testing from the Phase 2 service
+         UI. It exercises the same iframe origin/protocol without requiring a project build. -->
+    <span id="preview-status">Connecting</span>
+    <span id="renderer-value">Waiting</span>
+    <span id="geometry-value">Waiting</span>
+    <button id="capture-button" type="button" disabled>Capture framebuffer</button>
+    <span id="capture-status">No capture saved.</span>
+    <iframe
+      id="preview"
+      title="Sandboxed Dear ImGui WebAssembly preview"
+      src="http://127.0.0.1:4174/preview.html?parentOrigin=http://127.0.0.1:4173"
+      sandbox="allow-scripts allow-same-origin"
+      width="900"
+      height="600"
+    ></iframe>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

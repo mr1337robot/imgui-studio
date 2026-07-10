@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide reaches the Phase 1 real Dear ImGui browser preview and Windows native parity capture.
+This guide reaches the Phase 2 Monaco edit/build/preview loop and Windows native parity capture.
 
 ## 1. Install the native toolchain
 
@@ -36,17 +36,21 @@ node .\scripts\verify-toolchain.mjs --profile wasm
 The bootstrap is confined to `.tools/emsdk`, checks out the pinned emsdk commit, and activates
 Emscripten 4.0.10. Loading `emsdk_env.ps1` affects only the current shell.
 
-## 4. Run the browser preview
+## 4. Run ImGui Studio
 
-In the Emscripten-enabled shell, start the two loopback origins:
+In the Emscripten-enabled developer shell, start the authenticated service:
 
 ```powershell
-npm run preview:serve
+npm run studio
 ```
 
-Open `http://127.0.0.1:4173`, or run `npm run test:browser` in a second shell to automate the
-Chromium interaction, animation, isolation, and capture checks. The browser capture is written to
-`out/captures/browser.png`.
+Open `http://127.0.0.1:4173`. Select `src/menu.cpp`, edit it in Monaco, and choose **Build preview**.
+Modified editor text is saved through a revision/preimage-checked patch before the incremental build.
+A successful build replaces the iframe only after Chromium smoke initialization. A compiler error
+shows a structured source location and leaves the previous preview visible with **PREVIEW STALE**.
+
+Run `npm run test:browser` for the isolated renderer fixture or `npm run test:studio` for the complete
+human-facing journey.
 
 ## 5. Capture and compare Windows parity
 

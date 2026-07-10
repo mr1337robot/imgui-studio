@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "name": "ImGui Studio Starter",
+  "projectKey": "imgui-studio-starter",
+  "renderingTier": "portable",
+  "language": { "cppStandard": 20 },
+  "toolchain": {
+    "versionSet": "studio-0.1.0-win-x64",
+    "imguiVersion": "1.92.1",
+    "emscriptenVersion": "4.0.10",
+    "studioRuntimeVersion": "0.1.0"
+  },
+  "entryPoint": {
+    "initialize": "studio_example::Initialize",
+    "resetSampleState": "studio_example::ResetMenuState",
+    "render": "studio_example::RenderMenu",
+    "shutdown": "studio_example::Shutdown"
+  },
+  "sources": ["src/*.cpp"],
+  "includeDirectories": ["include"],
+  "defines": [],
+  "viewport": {
+    "widthPx": 900,
+    "heightPx": 600,
+    "dpiScaleMilli": 1000,
+    "clearColorRgba8": [8, 11, 22, 255]
+  },
+  "assetsManifest": "assets/assets.json",
+  "referencesManifest": "references/references.json",
+  "scenarioGlobs": [],
+  "managedFiles": [],
+  "export": {
+    "publicHeaders": ["include/**/*.hpp"],
+    "sourceGlobs": ["src/*.cpp"],
+    "licenseGlobs": []
+  }
+}

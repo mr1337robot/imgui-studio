@@ -20,6 +20,18 @@ export interface ImGuiStudioImmutableBuildRecordV1 {
   smokePassed: boolean | null;
   diagnostics: Diagnostic[];
   artifacts: Artifact[];
+  phaseDurationsMs?: {
+    [k: string]: number;
+  };
+  cache?: {
+    projectSourcesChanged: boolean;
+    stableObjectsReused: boolean;
+    corruptionRecovered: boolean;
+    assetBundleReused: boolean;
+  };
+  previewArtifacts?: {
+    [k: string]: string;
+  };
 }
 /**
  * This interface was referenced by `ImGuiStudioImmutableBuildRecordV1`'s JSON-Schema

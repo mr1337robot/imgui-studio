@@ -31,7 +31,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['apps/studio-web/**/*.js'],
+    files: ['apps/studio-web/**/*.js', 'tests/fixtures/browser/**/*.js'],
     languageOptions: {
       ecmaVersion: 2024,
       globals: globals.browser,

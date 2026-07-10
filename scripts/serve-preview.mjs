@@ -7,7 +7,9 @@ import { fileURLToPath } from 'node:url';
 // preview. Origin separation lets the iframe CSP remain restrictive and exercises the same trust
 // boundary that the later local service will enforce. It is not the Phase 2 project service.
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
-const studioRoot = resolve(repositoryRoot, 'apps/studio-web');
+// This server is now the isolated renderer-test harness. The real Phase 2 editor is served by the
+// authenticated Studio service (`npm run studio`) and must not be silently tested without auth.
+const studioRoot = resolve(repositoryRoot, 'tests/fixtures/browser');
 const previewRoot = resolve(repositoryRoot, 'build/wasm-preview/preview');
 const captureRoot = resolve(repositoryRoot, 'out/captures');
 const maximumCaptureBytes = 16 * 1024 * 1024;

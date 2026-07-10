@@ -20,6 +20,8 @@ npm run format:cpp:check
 npm run test:ts
 npm run test:cpp
 npm run test:comparison
+npm run test:phase2
+npm run test:studio
 ```
 
 ## Generated contracts
@@ -73,6 +75,26 @@ omits that flag, uses fixed frame timing, writes canonical artifacts, and exits 
 
 Generated captures, metadata, reports, and PNG differences remain under ignored `out/`
 directories. Do not update a visual expectation without reviewing its diff and provenance.
+
+## Phase 2 edit/build workflow
+
+```powershell
+. .\.tools\emsdk\emsdk_env.ps1
+npm run studio
+```
+
+The service snapshots canonical inputs under `.studio/builds/<buildId>/snapshot`, copies the selected
+snapshot into a stable CMake input directory, recompiles the changed starter translation unit, and
+links a new immutable preview. Compile, link, artifact promotion, and smoke durations are recorded
+separately. The stable Dear ImGui/backend object cache is content-verified before reuse.
+
+Run the service and browser gates after changing filesystem, revision, build, preview, authentication,
+or editor code:
+
+```powershell
+npm run test:phase2
+npm run test:studio
+```
 
 ## Troubleshooting
 

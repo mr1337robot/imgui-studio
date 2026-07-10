@@ -9,10 +9,10 @@ in native exports. HTML or JSON widget recreations are not the source of truth.
 
 ## Status
 
-Phase 1 is complete. The repository renders one shared, custom animated C++ toggle through real
-Dear ImGui in WebAssembly/WebGL2 and Windows/DirectX 11, captures both framebuffers, and enforces
-source identity plus a two-pixel geometry parity gate. See
-[docs/phase-1-completion.md](docs/phase-1-completion.md) for evidence and remaining boundaries.
+Phase 2 is complete. The repository includes the authenticated local project service, Monaco C++
+editor, atomic revision-safe patches, incremental/cancellable Emscripten builds, structured compiler
+diagnostics, immutable artifacts, smoke-gated preview replacement, and last-known-good preview
+retention. See [docs/phase-2-completion.md](docs/phase-2-completion.md) for evidence.
 
 ## Prerequisites
 
@@ -42,6 +42,7 @@ Install and verify browser tooling:
 node .\scripts\verify-toolchain.mjs --profile wasm
 .\toolchain\emscripten\build-preview.ps1
 npm run test:browser
+npm run studio
 ```
 
 Fetch and verify the pinned Dear ImGui source for development:
@@ -61,6 +62,9 @@ Fetch and verify the pinned Dear ImGui source for development:
 | `npm run test:browser`       | Exercise and capture the real WASM preview in Chromium   |
 | `npm run compare:captures`   | Compare browser/native captures and write a PNG diff     |
 | `npm run preview:serve`      | Serve the shell and preview on separate loopback origins |
+| `npm run studio`             | Start the authenticated Phase 2 editor and local service |
+| `npm run test:phase2`        | Run the revision/build/cache/preview service gate        |
+| `npm run test:studio`        | Run the Monaco edit/build/stale-preview browser journey  |
 | `.\toolchain\run-native.ps1` | Open the persistent interactive Win32/DX11 preview       |
 | `npm run schemas:generate`   | Regenerate TypeScript types from canonical JSON Schemas  |
 | `npm run schemas:check`      | Fail if generated schema types are stale                 |
