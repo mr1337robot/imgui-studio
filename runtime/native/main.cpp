@@ -27,11 +27,13 @@ using Microsoft::WRL::ComPtr;
 
 constexpr UINT kViewportWidthPx = 900;
 constexpr UINT kViewportHeightPx = 600;
+constexpr int kDeterministicCaptureFrameCount = 3;
 
 struct CommandLine {
     std::filesystem::path output{"out/captures/native.png"};
     std::filesystem::path metadata{"out/captures/native.metadata.json"};
     float layoutOffsetXPx{};
+    bool interactive{};
 };
 
 struct Graphics {
@@ -92,6 +94,8 @@ struct Graphics {
             } catch (...) {
                 return std::nullopt;
             }
+        } else if (argument == "--interactive") {
+            parsed.interactive = true;
         } else {
             return std::nullopt;
         }
@@ -183,7 +187,7 @@ int main(int argumentCount, char** arguments) {
     const auto commandLine = ParseCommandLine(argumentCount, arguments);
     if (!commandLine) {
         std::cerr << "Usage: imgui_studio_native_parity [--output path] [--metadata path] "
-                     "[--layout-offset-x pixels]\n";
+                     "[--layout-offset-x pixels] [--interactive]\n";
         return EXIT_FAILURE;
     }
 
@@ -257,20 +261,42 @@ int main(int argumentCount, char** arguments) {
     menuState.layoutOffsetXPx = commandLine->layoutOffsetXPx;
     studio_example::MenuDiagnostics diagnostics;
 
-    // Render a few fixed 60 Hz warm-up frames so the font atlas is uploaded and the initial toggle
-    // animation has settled. Fixed delta time avoids wall-clock scheduling differences in CI.
-    for (int frame = 0; frame < 3; ++frame) {
+    if (commandLine->interactive) {
+        // Capture mode intentionally keeps the window hidden. Interactive mode makes the same
+        // render target visible and gives it focus so the existing Win32 backend receives input.
+        ShowWindow(window, SW_SHOWDEFAULT);
+        UpdateWindow(window);
+    }
+
+    bool running = true;
+    bool presentationSucceeded = true;
+    int renderedFrames = 0;
+    // Interactive mode runs until WM_QUIT. Capture mode renders a small, deterministic number of
+    // hidden frames so the font atlas is uploaded before reading the final back buffer.
+    while (running &&
+           (commandLine->interactive || renderedFrames < kDeterministicCaptureFrameCount)) {
         MSG message{};
         while (PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE) != 0) {
+            if (message.message == WM_QUIT) {
+                running = false;
+                break;
+            }
             TranslateMessage(&message);
             DispatchMessageW(&message);
+        }
+        if (!running) {
+            break;
         }
 
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         io.DisplaySize = {static_cast<float>(kViewportWidthPx),
                           static_cast<float>(kViewportHeightPx)};
-        io.DeltaTime = 1.0F / 60.0F;
+        if (!commandLine->interactive) {
+            // The interactive backend measures real elapsed time. Canonical capture must instead
+            // use a fixed 60 Hz step so machine scheduling cannot alter animation state.
+            io.DeltaTime = 1.0F / 60.0F;
+        }
         ImGui::NewFrame();
         diagnostics = studio_example::RenderMenu(menuState, io.DeltaTime);
         ImGui::Render();
@@ -279,19 +305,36 @@ int main(int argumentCount, char** arguments) {
         graphics->context->OMSetRenderTargets(1, graphics->renderTarget.GetAddressOf(), nullptr);
         graphics->context->ClearRenderTargetView(graphics->renderTarget.Get(), clearColor);
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+        if (commandLine->interactive) {
+            // Present with a one-frame vertical-sync interval. Capture mode never presents because
+            // it reads the render target directly and should finish as quickly as possible in CI.
+            const HRESULT presentResult = graphics->swapChain->Present(1, 0);
+            if (FAILED(presentResult)) {
+                std::cerr << "DX11 presentation failed.\n";
+                presentationSucceeded = false;
+                running = false;
+            }
+        }
+        ++renderedFrames;
     }
 
-    // Read the final back buffer before backend shutdown. CaptureTextureToPng performs the required
-    // GPU-to-CPU staging copy; metadata comes from the same final RenderMenu call.
-    ComPtr<ID3D11Texture2D> backBuffer;
-    const HRESULT bufferResult = graphics->swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
-    const auto captureResult =
-        SUCCEEDED(bufferResult)
-            ? studio::native::CaptureTextureToPng(*graphics->device.Get(), *graphics->context.Get(),
-                                                  *backBuffer.Get(), commandLine->output)
-            : studio::native::CaptureResult{false, "Unable to access the DX11 back buffer."};
-    const bool metadataWritten =
-        WriteMetadata(commandLine->metadata, diagnostics, commandLine->layoutOffsetXPx);
+    studio::native::CaptureResult captureResult{true, {}};
+    bool metadataWritten = true;
+    if (!commandLine->interactive) {
+        // Read the final back buffer before backend shutdown. CaptureTextureToPng performs the
+        // GPU-to-CPU staging copy; metadata comes from the same final RenderMenu call.
+        ComPtr<ID3D11Texture2D> backBuffer;
+        const HRESULT bufferResult = graphics->swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer));
+        captureResult =
+            SUCCEEDED(bufferResult)
+                ? studio::native::CaptureTextureToPng(*graphics->device.Get(),
+                                                      *graphics->context.Get(), *backBuffer.Get(),
+                                                      commandLine->output)
+                : studio::native::CaptureResult{false, "Unable to access the DX11 back buffer."};
+        metadataWritten =
+            WriteMetadata(commandLine->metadata, diagnostics, commandLine->layoutOffsetXPx);
+    }
 
     // Tear down in reverse ownership order: ImGui backends/context, COM graphics objects, window
     // class, then the thread's COM apartment.
@@ -303,10 +346,17 @@ int main(int argumentCount, char** arguments) {
     UnregisterClassW(windowClassName, instance);
     CoUninitialize();
 
+    if (!presentationSucceeded) {
+        return EXIT_FAILURE;
+    }
     if (!captureResult.succeeded || !metadataWritten) {
         std::cerr << (captureResult.succeeded ? "Unable to write metadata." : captureResult.error)
                   << '\n';
         return EXIT_FAILURE;
+    }
+    if (commandLine->interactive) {
+        std::cout << "Interactive native preview closed.\n";
+        return EXIT_SUCCESS;
     }
     std::cout << "Native capture: " << commandLine->output.string() << '\n';
     std::cout << "Native metadata: " << commandLine->metadata.string() << '\n';

@@ -52,21 +52,22 @@ Fetch and verify the pinned Dear ImGui source for development:
 
 ## Common commands
 
-| Command                    | Purpose                                                  |
-| -------------------------- | -------------------------------------------------------- |
-| `npm ci`                   | Reproduce the pinned npm dependency graph                |
-| `npm run validate`         | Run the complete native quality gate                     |
-| `npm run test:ts`          | Run TypeScript/schema contract tests                     |
-| `npm run test:cpp`         | Build and test the C++ foundation and native parity host |
-| `npm run test:browser`     | Exercise and capture the real WASM preview in Chromium   |
-| `npm run compare:captures` | Compare browser/native captures and write a PNG diff     |
-| `npm run preview:serve`    | Serve the shell and preview on separate loopback origins |
-| `npm run schemas:generate` | Regenerate TypeScript types from canonical JSON Schemas  |
-| `npm run schemas:check`    | Fail if generated schema types are stale                 |
-| `npm run licenses:check`   | Fail if npm dependency license inventory is stale        |
-| `npm run format:cpp:check` | Validate C++ with the pinned clang-format                |
-| `npm run format`           | Apply repository formatting                              |
-| `npm run clean`            | Remove repository-local build output                     |
+| Command                      | Purpose                                                  |
+| ---------------------------- | -------------------------------------------------------- |
+| `npm ci`                     | Reproduce the pinned npm dependency graph                |
+| `npm run validate`           | Run the complete native quality gate                     |
+| `npm run test:ts`            | Run TypeScript/schema contract tests                     |
+| `npm run test:cpp`           | Build and test the C++ foundation and native parity host |
+| `npm run test:browser`       | Exercise and capture the real WASM preview in Chromium   |
+| `npm run compare:captures`   | Compare browser/native captures and write a PNG diff     |
+| `npm run preview:serve`      | Serve the shell and preview on separate loopback origins |
+| `.\toolchain\run-native.ps1` | Open the persistent interactive Win32/DX11 preview       |
+| `npm run schemas:generate`   | Regenerate TypeScript types from canonical JSON Schemas  |
+| `npm run schemas:check`      | Fail if generated schema types are stale                 |
+| `npm run licenses:check`     | Fail if npm dependency license inventory is stale        |
+| `npm run format:cpp:check`   | Validate C++ with the pinned clang-format                |
+| `npm run format`             | Apply repository formatting                              |
+| `npm run clean`              | Remove repository-local build output                     |
 
 ## Documentation
 

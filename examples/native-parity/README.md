@@ -8,3 +8,7 @@ The Win32 plus DirectX 11 parity host lives under `runtime/native/` and links
 The capture records a SHA-256 identity derived from the starter implementation and public header.
 The parity gate rejects different source identities, mismatched framebuffer dimensions, and toggle
 geometry differences greater than two pixels.
+
+For manual testing, run `toolchain/run-native.ps1`. This builds the same executable with
+`--interactive`, presents frames continuously with vertical synchronization, and exits only when
+the window is closed. Interactive mode does not overwrite canonical capture artifacts.

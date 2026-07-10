@@ -50,6 +50,15 @@ Chromium interaction, animation, isolation, and capture checks. The browser capt
 
 ## 5. Capture and compare Windows parity
 
+Open the live native preview for manual interaction:
+
+```powershell
+.\toolchain\run-native.ps1
+```
+
+Close its window when finished. This interactive mode presents continuously and does not overwrite
+canonical captures. To exercise the deterministic capture-and-exit path instead, run:
+
 ```powershell
 .\toolchain\capture-native.ps1
 npm run compare:captures

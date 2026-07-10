@@ -63,9 +63,13 @@ For interactive development, run `npm run preview:serve` and open
 Build the Win32/DirectX 11 host, capture the same starter source, and compare:
 
 ```powershell
+.\toolchain\run-native.ps1
 .\toolchain\capture-native.ps1
 npm run compare:captures
 ```
+
+`run-native.ps1` launches the persistent, input-enabled `--interactive` mode. The capture script
+omits that flag, uses fixed frame timing, writes canonical artifacts, and exits automatically.
 
 Generated captures, metadata, reports, and PNG differences remain under ignored `out/`
 directories. Do not update a visual expectation without reviewing its diff and provenance.

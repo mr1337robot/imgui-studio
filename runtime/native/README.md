@@ -6,3 +6,7 @@ output with Windows Imaging Component. It writes matching JSON geometry metadata
 
 The host is intentionally separate from the shared menu library; no Win32 or DX11 type crosses
 into project source.
+
+Run `toolchain/run-native.ps1` for a visible, interactive window that remains open until closed.
+Mouse input and animation use the normal Win32 frame clock in this mode. Running the executable
+without `--interactive` retains the hidden, fixed-step capture-and-exit behavior required by CI.

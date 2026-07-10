@@ -13,6 +13,8 @@ rendering-spine gate with the same custom widget source compiled into both targe
   shell's sandboxed iframe.
 - `runtime/native` renders the identical starter target through Win32/DirectX 11 and captures the
   final texture through a staging resource and Windows Imaging Component.
+- The native executable also supports `--interactive`, which presents continuously with VSync and
+  remains open for mouse/keyboard testing without modifying canonical capture artifacts.
 - Both capture records include the SHA-256 identity derived from the shared starter implementation
   and public header, fixed viewport/framebuffer provenance, and structured toggle geometry.
 - `scripts/compare-captures.mjs` writes a versioned JSON report and PNG difference. Source identity,
@@ -26,16 +28,16 @@ rendering-spine gate with the same custom widget source compiled into both targe
 The canonical browser and native captures were both 900 x 600. Their shared-source SHA-256 was
 `40295d4a756cfc0b6d3f6dab393e5ccfaf5cd95e9fed0d2d56daff760a28f3e0`.
 
-| Measurement                      |           Result |       Gate |
-| -------------------------------- | ---------------: | ---------: |
-| Toggle x difference              |             0 px |    <= 2 px |
-| Toggle y difference              |             0 px |    <= 2 px |
-| Toggle width difference          |             0 px |    <= 2 px |
-| Toggle height difference         |             0 px |    <= 2 px |
-| Canonical changed pixels         | 20,626 / 540,000 | Diagnostic |
-| Canonical changed-pixel ratio    |         0.038196 | Diagnostic |
-| Mean absolute channel difference |         0.016307 | Diagnostic |
-| Weighted-YIQ similarity          |         0.999917 | Diagnostic |
+| Measurement                      |      Result |       Gate |
+| -------------------------------- | ----------: | ---------: |
+| Toggle x difference              |        0 px |    <= 2 px |
+| Toggle y difference              |        0 px |    <= 2 px |
+| Toggle width difference          |        0 px |    <= 2 px |
+| Toggle height difference         |        0 px |    <= 2 px |
+| Canonical changed pixels         | 2 / 540,000 | Diagnostic |
+| Canonical changed-pixel ratio    | 0.000003704 | Diagnostic |
+| Mean absolute channel difference | 0.000001852 | Diagnostic |
+| Weighted-YIQ similarity          | 0.999999991 | Diagnostic |
 
 The deliberately shifted native fixture moved the toggle by 8 px. The comparison report rejected
 it against the two-pixel limit while confirming that it still used the identical shared source.
