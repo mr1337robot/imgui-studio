@@ -1,0 +1,21 @@
+node_modules/
+build/
+out/
+.tools/
+.studio/
+
+# The root implementation contracts and accepted ADRs are manually formatted.
+/AGENTS.md
+/AGENT_TOOL_API.md
+/ANIMATION_SPEC.md
+/EXPORT_AND_INTEGRATION.md
+/INSPECTION_PROTOCOL.md
+/MVP_IMPLEMENTATION_PLAN.md
+/PRD.md
+/PROJECT_FORMAT.md
+/RUNTIME_API.md
+/SECURITY_MODEL.md
+/TECHNICAL_DESIGN.md
+/TEST_PLAN.md
+/docs/adr/*.md
+

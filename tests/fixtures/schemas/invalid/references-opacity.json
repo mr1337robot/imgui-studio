@@ -1,0 +1,20 @@
+{
+  "schema": "references.schema.json",
+  "expectedKeyword": "maximum",
+  "document": {
+    "schemaVersion": 1,
+    "references": [
+      {
+        "id": "target.desktop",
+        "source": "references/images/target.png",
+        "transform": {
+          "translateMicroPx": [0, 0],
+          "scaleMillionths": 1000000,
+          "cropPx": null,
+          "opacityMillionths": 1000001
+        },
+        "annotations": []
+      }
+    ]
+  }
+}

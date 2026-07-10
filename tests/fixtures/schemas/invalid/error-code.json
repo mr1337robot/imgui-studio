@@ -1,0 +1,14 @@
+{
+  "schema": "error.schema.json",
+  "expectedKeyword": "enum",
+  "document": {
+    "schemaVersion": 1,
+    "error": {
+      "code": "UNKNOWN_ERROR",
+      "message": "Unknown",
+      "retryable": false,
+      "details": {},
+      "requestId": "req_test"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "schema": "build-record.schema.json",
+  "document": {
+    "schemaVersion": 1,
+    "buildId": "bld_test",
+    "projectId": "prj_test",
+    "projectRevision": "1",
+    "configuration": "preview-debug",
+    "status": "succeeded",
+    "toolchainVersionSet": "studio-0.1.0-win-x64",
+    "startedAt": "2026-07-10T12:00:00Z",
+    "completedAt": "2026-07-10T12:00:02Z",
+    "smokePassed": true,
+    "diagnostics": [],
+    "artifacts": [
+      {
+        "artifactId": "art_wasm",
+        "kind": "wasm",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sizeBytes": 1024
+      }
+    ]
+  }
+}

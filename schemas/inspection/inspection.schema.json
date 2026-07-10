@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://imgui.studio/schemas/inspection/v1.json",
+  "title": "ImGui Studio frame inspection snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "identity", "timeUs", "viewport", "widgets", "diagnostics"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "identity": { "$ref": "#/$defs/identity" },
+    "timeUs": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "viewport": { "$ref": "#/$defs/rect" },
+    "widgets": { "type": "array", "maxItems": 100000, "items": { "$ref": "#/$defs/widget" } },
+    "diagnostics": { "type": "array", "maxItems": 10000, "items": { "$ref": "#/$defs/diagnostic" } }
+  },
+  "$defs": {
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["projectId", "projectRevision", "buildId", "previewInstanceId", "frameId"],
+      "properties": {
+        "projectId": { "type": "string", "minLength": 1 },
+        "projectRevision": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+        "buildId": { "type": "string", "minLength": 1 },
+        "previewInstanceId": { "type": "string", "minLength": 1 },
+        "frameId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "rect": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "number" } },
+    "widget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "widgetId",
+        "semanticType",
+        "parentWidgetId",
+        "boundsPx",
+        "hitboxPx",
+        "visible",
+        "clipped",
+        "state",
+        "animations"
+      ],
+      "properties": {
+        "widgetId": { "type": "string", "minLength": 1 },
+        "semanticType": { "type": "string", "minLength": 1 },
+        "parentWidgetId": { "type": ["string", "null"] },
+        "boundsPx": { "$ref": "#/$defs/rect" },
+        "hitboxPx": { "$ref": "#/$defs/rect" },
+        "visible": { "type": "boolean" },
+        "clipped": { "type": "boolean" },
+        "state": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["hovered", "held", "pressed", "active", "focused", "disabled"],
+          "properties": {
+            "hovered": { "type": "boolean" },
+            "held": { "type": "boolean" },
+            "pressed": { "type": "boolean" },
+            "active": { "type": "boolean" },
+            "focused": { "type": "boolean" },
+            "disabled": { "type": "boolean" }
+          }
+        },
+        "animations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "value", "target", "settled"],
+            "properties": {
+              "kind": { "enum": ["tween", "spring", "sequence"] },
+              "value": {
+                "oneOf": [{ "type": "number" }, { "type": "array", "items": { "type": "number" } }]
+              },
+              "target": {
+                "oneOf": [{ "type": "number" }, { "type": "array", "items": { "type": "number" } }]
+              },
+              "settled": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severity", "code", "message", "widgetId"],
+      "properties": {
+        "severity": { "enum": ["info", "warning", "error", "fatal"] },
+        "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]+$" },
+        "message": { "type": "string", "maxLength": 4096 },
+        "widgetId": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schema": "inspection.schema.json",
+  "expectedKeyword": "required",
+  "document": {
+    "schemaVersion": 1,
+    "identity": {
+      "projectId": "prj_test",
+      "projectRevision": "1",
+      "buildId": "bld_test",
+      "previewInstanceId": "prv_test"
+    },
+    "timeUs": 0,
+    "viewport": [0, 0, 900, 600],
+    "widgets": [],
+    "diagnostics": []
+  }
+}

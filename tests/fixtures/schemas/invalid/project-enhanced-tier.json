@@ -1,0 +1,37 @@
+{
+  "schema": "project.schema.json",
+  "expectedKeyword": "const",
+  "document": {
+    "schemaVersion": 1,
+    "name": "Invalid enhanced project",
+    "projectKey": "invalid-enhanced",
+    "renderingTier": "enhanced",
+    "language": { "cppStandard": 20 },
+    "toolchain": {
+      "versionSet": "studio-0.1.0-win-x64",
+      "imguiVersion": "1.92.1",
+      "emscriptenVersion": "4.0.10",
+      "studioRuntimeVersion": "0.1.0"
+    },
+    "entryPoint": {
+      "initialize": "project::Initialize",
+      "resetSampleState": "project::ResetSampleState",
+      "render": "project::Render",
+      "shutdown": "project::Shutdown"
+    },
+    "sources": ["src/**/*.cpp"],
+    "includeDirectories": ["include"],
+    "defines": [],
+    "viewport": {
+      "widthPx": 900,
+      "heightPx": 600,
+      "dpiScaleMilli": 1000,
+      "clearColorRgba8": [0, 0, 0, 255]
+    },
+    "assetsManifest": "assets/assets.json",
+    "referencesManifest": "references/references.json",
+    "scenarioGlobs": [],
+    "managedFiles": [],
+    "export": { "publicHeaders": [], "sourceGlobs": ["src/**/*.cpp"], "licenseGlobs": [] }
+  }
+}

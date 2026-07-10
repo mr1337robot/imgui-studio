@@ -41,6 +41,9 @@ Changes to shared protocol or public runtime contracts require a short ADR or an
 
 ## 4. Phase 0 — Repository and reproducibility
 
+**Implementation status:** Complete as of July 10, 2026. Local gate evidence is recorded in
+`docs/phase-0-completion.md`; the first pushed CI run will provide the independent clean-run link.
+
 ### WP0.1 Repository skeleton
 
 Tasks:
@@ -620,4 +623,3 @@ Milestone completion is recorded only after its phase gate passes on a clean env
 - [ ] Security and recovery tests pass.
 - [ ] Ten-run benchmark meets completion and quality targets.
 - [ ] All product documentation matches released behavior.
-

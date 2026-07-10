@@ -1,0 +1,60 @@
+{
+  "version": 10,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 0,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "20",
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+        "IMGUI_STUDIO_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "native-msvc",
+      "displayName": "Windows native foundation (MSVC x64)",
+      "inherits": "base",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64"
+    },
+    {
+      "name": "native-ninja",
+      "displayName": "Native foundation (Ninja)",
+      "inherits": "base",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "native-msvc",
+      "configurePreset": "native-msvc",
+      "configuration": "Debug"
+    },
+    {
+      "name": "native-ninja",
+      "configurePreset": "native-ninja"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "native-msvc",
+      "configurePreset": "native-msvc",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "native-ninja",
+      "configurePreset": "native-ninja",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}

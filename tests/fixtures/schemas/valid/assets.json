@@ -1,0 +1,33 @@
+{
+  "schema": "assets.schema.json",
+  "document": {
+    "schemaVersion": 1,
+    "assets": [
+      {
+        "id": "brand.logo",
+        "kind": "texture",
+        "source": "assets/textures/logo.webp",
+        "colorSpace": "srgb",
+        "licenseFiles": ["assets/licenses/brand.txt"]
+      },
+      {
+        "id": "font.ui-regular",
+        "kind": "font",
+        "source": "assets/fonts/Inter-Regular.ttf",
+        "sizeMilliPx": 16000,
+        "glyphRanges": ["latin-basic"],
+        "oversampleH": 2,
+        "oversampleV": 2,
+        "mergeInto": null,
+        "licenseFiles": ["assets/licenses/inter.txt"]
+      },
+      {
+        "id": "icon.settings",
+        "kind": "svgIcon",
+        "source": "assets/icons/settings.svg",
+        "rasterSizesPx": [16, 24, 32],
+        "licenseFiles": []
+      }
+    ]
+  }
+}

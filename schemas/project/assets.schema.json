@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://imgui.studio/schemas/assets/v1.json",
+  "title": "ImGui Studio asset manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "assets"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "assets": {
+      "type": "array",
+      "maxItems": 2048,
+      "items": { "$ref": "#/$defs/asset" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9-]*)+$" },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*\\\\).+$"
+    },
+    "licenseFiles": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/path" },
+      "uniqueItems": true
+    },
+    "asset": {
+      "oneOf": [
+        { "$ref": "#/$defs/texture" },
+        { "$ref": "#/$defs/font" },
+        { "$ref": "#/$defs/svgIcon" }
+      ]
+    },
+    "base": {
+      "type": "object",
+      "required": ["id", "kind", "source", "licenseFiles"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": { "enum": ["texture", "font", "svgIcon"] },
+        "source": { "$ref": "#/$defs/path" },
+        "licenseFiles": { "$ref": "#/$defs/licenseFiles" }
+      }
+    },
+    "texture": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "kind", "source", "colorSpace", "licenseFiles"],
+          "properties": {
+            "id": { "$ref": "#/$defs/id" },
+            "kind": { "const": "texture" },
+            "source": { "$ref": "#/$defs/path" },
+            "colorSpace": { "enum": ["srgb", "linear"] },
+            "licenseFiles": { "$ref": "#/$defs/licenseFiles" }
+          }
+        }
+      ]
+    },
+    "font": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "kind",
+            "source",
+            "sizeMilliPx",
+            "glyphRanges",
+            "oversampleH",
+            "oversampleV",
+            "mergeInto",
+            "licenseFiles"
+          ],
+          "properties": {
+            "id": { "$ref": "#/$defs/id" },
+            "kind": { "const": "font" },
+            "source": { "$ref": "#/$defs/path" },
+            "sizeMilliPx": { "type": "integer", "minimum": 1000, "maximum": 256000 },
+            "glyphRanges": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 },
+              "uniqueItems": true
+            },
+            "oversampleH": { "type": "integer", "minimum": 1, "maximum": 8 },
+            "oversampleV": { "type": "integer", "minimum": 1, "maximum": 8 },
+            "mergeInto": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/id" }] },
+            "licenseFiles": { "$ref": "#/$defs/licenseFiles" }
+          }
+        }
+      ]
+    },
+    "svgIcon": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "kind", "source", "rasterSizesPx", "licenseFiles"],
+          "properties": {
+            "id": { "$ref": "#/$defs/id" },
+            "kind": { "const": "svgIcon" },
+            "source": { "$ref": "#/$defs/path" },
+            "rasterSizesPx": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "integer", "minimum": 8, "maximum": 1024 },
+              "uniqueItems": true
+            },
+            "licenseFiles": { "$ref": "#/$defs/licenseFiles" }
+          }
+        }
+      ]
+    }
+  }
+}

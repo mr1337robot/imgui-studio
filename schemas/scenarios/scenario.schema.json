@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://imgui.studio/schemas/scenario/v1.json",
+  "title": "ImGui Studio deterministic scenario v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "id", "name", "reset", "viewport", "steps", "capture"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "$ref": "#/$defs/id" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "reset": { "const": "clean" },
+    "viewport": { "$ref": "#/$defs/viewport" },
+    "steps": { "type": "array", "maxItems": 10000, "items": { "$ref": "#/$defs/step" } },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startUs", "endUs", "fps", "includeInspection"],
+      "properties": {
+        "startUs": { "$ref": "#/$defs/timeUs" },
+        "endUs": { "$ref": "#/$defs/timeUs" },
+        "fps": { "type": "integer", "minimum": 1, "maximum": 120 },
+        "includeInspection": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9-]*)+$" },
+    "timeUs": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widthPx", "heightPx", "dpiScaleMilli"],
+      "properties": {
+        "widthPx": { "type": "integer", "minimum": 64, "maximum": 8192 },
+        "heightPx": { "type": "integer", "minimum": 64, "maximum": 8192 },
+        "dpiScaleMilli": { "type": "integer", "minimum": 500, "maximum": 4000 }
+      }
+    },
+    "target": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["widgetId"],
+          "properties": { "widgetId": { "$ref": "#/$defs/id" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pointMicroPx"],
+          "properties": {
+            "pointMicroPx": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": { "type": "integer" }
+            }
+          }
+        }
+      ]
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "atUs", "action"],
+      "properties": {
+        "sequence": { "type": "integer", "minimum": 0 },
+        "atUs": { "$ref": "#/$defs/timeUs" },
+        "action": {
+          "enum": [
+            "move",
+            "pointerDown",
+            "pointerUp",
+            "click",
+            "drag",
+            "scroll",
+            "keyDown",
+            "keyUp",
+            "textInput"
+          ]
+        },
+        "target": { "$ref": "#/$defs/target" },
+        "button": { "enum": ["left", "right", "middle"] },
+        "toNormalized": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "integer", "minimum": 0, "maximum": 1000000 }
+        },
+        "durationUs": { "$ref": "#/$defs/timeUs" },
+        "deltaMicroPx": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "integer" }
+        },
+        "key": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "text": { "type": "string", "maxLength": 4096 }
+      }
+    }
+  }
+}

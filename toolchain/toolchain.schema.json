@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://imgui.studio/schemas/toolchain/v1.json",
+  "title": "ImGui Studio toolchain version set",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "versionSet", "host", "native", "browser", "dependencies"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "versionSet": { "type": "string", "minLength": 1 },
+    "host": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node", "npm", "cmake", "gitMinimum"],
+      "properties": {
+        "node": { "$ref": "#/$defs/version" },
+        "npm": { "$ref": "#/$defs/version" },
+        "cmake": { "$ref": "#/$defs/version" },
+        "gitMinimum": { "$ref": "#/$defs/version" }
+      }
+    },
+    "native": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["platform", "msvcCompiler", "clangFormat", "generator"],
+      "properties": {
+        "platform": { "const": "windows-x64" },
+        "msvcCompiler": { "$ref": "#/$defs/version" },
+        "clangFormat": { "$ref": "#/$defs/version" },
+        "generator": { "const": "Visual Studio 17 2022" }
+      }
+    },
+    "browser": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["emscripten", "emsdkCommit", "renderer"],
+      "properties": {
+        "emscripten": { "$ref": "#/$defs/version" },
+        "emsdkCommit": { "$ref": "#/$defs/sha1" },
+        "renderer": { "const": "WebGL2" }
+      }
+    },
+    "dependencies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dearImgui"],
+      "properties": {
+        "dearImgui": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "repository", "commit", "license"],
+          "properties": {
+            "version": { "$ref": "#/$defs/version" },
+            "repository": { "const": "https://github.com/ocornut/imgui.git" },
+            "commit": { "$ref": "#/$defs/sha1" },
+            "license": { "const": "MIT" }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "sha1": { "type": "string", "pattern": "^[a-f0-9]{40}$" }
+  }
+}

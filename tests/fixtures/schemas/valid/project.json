@@ -1,0 +1,40 @@
+{
+  "schema": "project.schema.json",
+  "document": {
+    "schemaVersion": 1,
+    "name": "Neon Settings",
+    "projectKey": "neon-settings",
+    "renderingTier": "portable",
+    "language": { "cppStandard": 20 },
+    "toolchain": {
+      "versionSet": "studio-0.1.0-win-x64",
+      "imguiVersion": "1.92.1",
+      "emscriptenVersion": "4.0.10",
+      "studioRuntimeVersion": "0.1.0"
+    },
+    "entryPoint": {
+      "initialize": "project::Initialize",
+      "resetSampleState": "project::ResetSampleState",
+      "render": "project::Render",
+      "shutdown": "project::Shutdown"
+    },
+    "sources": ["src/**/*.cpp"],
+    "includeDirectories": ["include", "src"],
+    "defines": [],
+    "viewport": {
+      "widthPx": 900,
+      "heightPx": 600,
+      "dpiScaleMilli": 1000,
+      "clearColorRgba8": [9, 11, 18, 255]
+    },
+    "assetsManifest": "assets/assets.json",
+    "referencesManifest": "references/references.json",
+    "scenarioGlobs": ["scenarios/*.scenario.json"],
+    "managedFiles": ["src/studio_managed_theme.cpp"],
+    "export": {
+      "publicHeaders": ["include/**/*.hpp"],
+      "sourceGlobs": ["src/**/*.cpp", "src/**/*.hpp"],
+      "licenseGlobs": ["assets/licenses/**", "LICENSE*"]
+    }
+  }
+}

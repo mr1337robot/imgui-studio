@@ -1,0 +1,16 @@
+{
+  "schema": "assets.schema.json",
+  "expectedKeyword": "pattern",
+  "document": {
+    "schemaVersion": 1,
+    "assets": [
+      {
+        "id": "INVALID",
+        "kind": "texture",
+        "source": "assets/textures/image.png",
+        "colorSpace": "srgb",
+        "licenseFiles": []
+      }
+    ]
+  }
+}

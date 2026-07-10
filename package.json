@@ -1,0 +1,43 @@
+{
+  "name": "imgui-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-native visual development environment for real C++ Dear ImGui interfaces.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": "24.12.0",
+    "npm": "11.6.2"
+  },
+  "packageManager": "npm@11.6.2",
+  "scripts": {
+    "build": "npm run schemas:generate && npm run typecheck",
+    "clean": "node scripts/clean.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "format:cpp:check": "node scripts/check-cpp-format.mjs",
+    "licenses:check": "node scripts/generate-third-party.mjs --check",
+    "licenses:generate": "node scripts/generate-third-party.mjs",
+    "lint": "eslint . --max-warnings 0",
+    "schemas:check": "node scripts/generate-schemas.mjs --check",
+    "schemas:generate": "node scripts/generate-schemas.mjs",
+    "test": "npm run test:ts && npm run test:cpp",
+    "test:cpp": "node scripts/run-cpp-tests.mjs",
+    "test:ts": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "validate": "npm run verify:toolchain && npm run schemas:check && npm run licenses:check && npm run lint && npm run format:check && npm run format:cpp:check && npm run typecheck && npm run test",
+    "verify:toolchain": "node scripts/verify-toolchain.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.13.3",
+    "ajv": "8.20.0",
+    "eslint": "10.0.1",
+    "globals": "17.7.0",
+    "json-schema-to-typescript": "15.0.4",
+    "prettier": "3.9.5",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.63.0",
+    "vitest": "4.1.10"
+  }
+}

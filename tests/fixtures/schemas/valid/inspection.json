@@ -1,0 +1,38 @@
+{
+  "schema": "inspection.schema.json",
+  "document": {
+    "schemaVersion": 1,
+    "identity": {
+      "projectId": "prj_test",
+      "projectRevision": "1",
+      "buildId": "bld_test",
+      "previewInstanceId": "prv_test",
+      "frameId": "frm_test"
+    },
+    "timeUs": 250000,
+    "viewport": [0, 0, 900, 600],
+    "widgets": [
+      {
+        "widgetId": "settings.enable",
+        "semanticType": "animated_toggle",
+        "parentWidgetId": null,
+        "boundsPx": [681, 241, 749, 269],
+        "hitboxPx": [681, 241, 749, 269],
+        "visible": true,
+        "clipped": false,
+        "state": {
+          "hovered": false,
+          "held": false,
+          "pressed": false,
+          "active": true,
+          "focused": false,
+          "disabled": false
+        },
+        "animations": {
+          "active": { "kind": "tween", "value": 0.82, "target": 1, "settled": false }
+        }
+      }
+    ],
+    "diagnostics": []
+  }
+}

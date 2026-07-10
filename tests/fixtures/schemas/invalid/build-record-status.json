@@ -1,0 +1,18 @@
+{
+  "schema": "build-record.schema.json",
+  "expectedKeyword": "enum",
+  "document": {
+    "schemaVersion": 1,
+    "buildId": "bld_test",
+    "projectId": "prj_test",
+    "projectRevision": "1",
+    "configuration": "preview-debug",
+    "status": "complete",
+    "toolchainVersionSet": "studio-0.1.0-win-x64",
+    "startedAt": null,
+    "completedAt": null,
+    "smokePassed": null,
+    "diagnostics": [],
+    "artifacts": []
+  }
+}

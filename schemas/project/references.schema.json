@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://imgui.studio/schemas/references/v1.json",
+  "title": "ImGui Studio reference image manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "references"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "references": {
+      "type": "array",
+      "maxItems": 128,
+      "items": { "$ref": "#/$defs/reference" }
+    }
+  },
+  "$defs": {
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "source", "transform", "annotations"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(?:\\.[a-z][a-z0-9-]*)+$" },
+        "source": {
+          "type": "string",
+          "pattern": "^references/images/(?!.*(?:^|/)\\.\\.?/)[^\\\\]+$"
+        },
+        "transform": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["translateMicroPx", "scaleMillionths", "cropPx", "opacityMillionths"],
+          "properties": {
+            "translateMicroPx": { "$ref": "#/$defs/pair" },
+            "scaleMillionths": { "type": "integer", "minimum": 1, "maximum": 100000000 },
+            "cropPx": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/rect" }] },
+            "opacityMillionths": { "type": "integer", "minimum": 0, "maximum": 1000000 }
+          }
+        },
+        "annotations": {
+          "type": "array",
+          "maxItems": 1024,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "rectPx", "note"],
+            "properties": {
+              "kind": { "enum": ["menuRegion", "excludePresentationEffect", "note"] },
+              "rectPx": { "$ref": "#/$defs/rect" },
+              "note": { "type": "string", "maxLength": 2048 }
+            }
+          }
+        }
+      }
+    },
+    "pair": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "integer" } },
+    "rect": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+        { "type": "integer" },
+        { "type": "integer" },
+        { "type": "integer", "minimum": 1 },
+        { "type": "integer", "minimum": 1 }
+      ],
+      "items": false
+    }
+  }
+}

@@ -1,0 +1,87 @@
+name: Foundation CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foundation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-foundation:
+    name: Windows native foundation
+    runs-on: windows-2025
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Configure Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.12.0
+          cache: npm
+
+      - name: Configure MSVC developer environment
+        uses: ilammy/msvc-dev-cmd@a102174a2b586eec2ea151a69e6fd14404a8ce7c
+        with:
+          arch: x64
+
+      - name: Install pinned host tools
+        shell: pwsh
+        run: |
+          npm install --global npm@11.6.2
+          python -m pip install --disable-pip-version-check cmake==4.3.2
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Fetch and verify pinned Dear ImGui source
+        shell: pwsh
+        run: .\toolchain\bootstrap-dependencies.ps1
+
+      - name: Run Phase 0 native gate
+        run: npm run validate
+
+  wasm-foundation:
+    name: Emscripten foundation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Configure Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.12.0
+          cache: npm
+
+      - name: Install pinned host tools
+        run: |
+          npm install --global npm@11.6.2
+          python3 -m pip install --break-system-packages --disable-pip-version-check cmake==4.3.2
+          npm ci
+
+      - name: Install pinned Emscripten SDK
+        shell: bash
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git .tools/emsdk
+          git -C .tools/emsdk checkout --detach 62a853cd3b3134398ce85cde8bb5cbb2ef0194cb
+          .tools/emsdk/emsdk install 4.0.10
+          .tools/emsdk/emsdk activate 4.0.10
+
+      - name: Verify and build the WASM foundation
+        shell: bash
+        run: |
+          source .tools/emsdk/emsdk_env.sh
+          node scripts/verify-toolchain.mjs --profile wasm
+          emcmake cmake -S . -B build/wasm-foundation -G Ninja -DIMGUI_STUDIO_BUILD_TESTS=ON
+          cmake --build build/wasm-foundation
+          ctest --test-dir build/wasm-foundation --output-on-failure

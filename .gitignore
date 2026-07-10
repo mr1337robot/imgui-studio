@@ -1,0 +1,31 @@
+# JavaScript and TypeScript
+node_modules/
+coverage/
+*.tsbuildinfo
+
+# CMake and native builds
+/build/
+/out/
+CMakeUserPresets.json
+
+# Local toolchains and generated state
+/.tools/
+.studio/
+
+# Generated schema output is committed; temporary generation is not.
+/schemas/generated/*.tmp
+
+# Editors and operating systems
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+

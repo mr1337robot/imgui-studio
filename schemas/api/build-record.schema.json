@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://imgui.studio/schemas/build-record/v1.json",
+  "title": "ImGui Studio immutable build record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "buildId",
+    "projectId",
+    "projectRevision",
+    "configuration",
+    "status",
+    "toolchainVersionSet",
+    "startedAt",
+    "completedAt",
+    "smokePassed",
+    "diagnostics",
+    "artifacts"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "buildId": { "type": "string", "minLength": 1 },
+    "projectId": { "type": "string", "minLength": 1 },
+    "projectRevision": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+    "configuration": { "enum": ["preview-debug", "native-parity", "export-release"] },
+    "status": { "enum": ["queued", "running", "succeeded", "failed", "cancelled"] },
+    "toolchainVersionSet": { "type": "string", "minLength": 1 },
+    "startedAt": { "type": ["string", "null"], "format": "date-time" },
+    "completedAt": { "type": ["string", "null"], "format": "date-time" },
+    "smokePassed": { "type": ["boolean", "null"] },
+    "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } },
+    "artifacts": { "type": "array", "items": { "$ref": "#/$defs/artifact" } }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["severity", "code", "message", "relativePath", "line", "column"],
+      "properties": {
+        "severity": { "enum": ["note", "warning", "error", "fatal"] },
+        "code": { "type": "string" },
+        "message": { "type": "string", "maxLength": 8192 },
+        "relativePath": { "type": ["string", "null"] },
+        "line": { "type": ["integer", "null"], "minimum": 1 },
+        "column": { "type": ["integer", "null"], "minimum": 1 }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "kind", "sha256", "sizeBytes"],
+      "properties": {
+        "artifactId": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["wasm", "loader", "sourceMap", "log", "nativeBinary", "report"] },
+        "sha256": { "$ref": "#/$defs/sha256" },
+        "sizeBytes": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

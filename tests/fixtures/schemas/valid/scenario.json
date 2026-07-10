@@ -1,0 +1,26 @@
+{
+  "schema": "scenario.schema.json",
+  "document": {
+    "schemaVersion": 1,
+    "id": "settings.toggle",
+    "name": "Toggle setting",
+    "reset": "clean",
+    "viewport": { "widthPx": 900, "heightPx": 600, "dpiScaleMilli": 1000 },
+    "steps": [
+      {
+        "sequence": 0,
+        "atUs": 100000,
+        "action": "move",
+        "target": { "widgetId": "settings.enable" }
+      },
+      {
+        "sequence": 1,
+        "atUs": 250000,
+        "action": "click",
+        "target": { "widgetId": "settings.enable" },
+        "button": "left"
+      }
+    ],
+    "capture": { "startUs": 0, "endUs": 1000000, "fps": 12, "includeInspection": true }
+  }
+}

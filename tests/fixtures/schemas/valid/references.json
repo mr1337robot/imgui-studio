@@ -1,0 +1,25 @@
+{
+  "schema": "references.schema.json",
+  "document": {
+    "schemaVersion": 1,
+    "references": [
+      {
+        "id": "target.desktop",
+        "source": "references/images/target.png",
+        "transform": {
+          "translateMicroPx": [0, 0],
+          "scaleMillionths": 1000000,
+          "cropPx": null,
+          "opacityMillionths": 500000
+        },
+        "annotations": [
+          {
+            "kind": "excludePresentationEffect",
+            "rectPx": [0, 0, 900, 80],
+            "note": "Reference-only bloom"
+          }
+        ]
+      }
+    ]
+  }
+}

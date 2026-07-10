@@ -1,0 +1,30 @@
+{
+  "$schema": "./toolchain.schema.json",
+  "schemaVersion": 1,
+  "versionSet": "studio-0.1.0-win-x64",
+  "host": {
+    "node": "24.12.0",
+    "npm": "11.6.2",
+    "cmake": "4.3.2",
+    "gitMinimum": "2.45.0"
+  },
+  "native": {
+    "platform": "windows-x64",
+    "msvcCompiler": "19.44.35223",
+    "clangFormat": "19.1.5",
+    "generator": "Visual Studio 17 2022"
+  },
+  "browser": {
+    "emscripten": "4.0.10",
+    "emsdkCommit": "62a853cd3b3134398ce85cde8bb5cbb2ef0194cb",
+    "renderer": "WebGL2"
+  },
+  "dependencies": {
+    "dearImgui": {
+      "version": "1.92.1",
+      "repository": "https://github.com/ocornut/imgui.git",
+      "commit": "5d4126876bc10396d4c6511853ff10964414c776",
+      "license": "MIT"
+    }
+  }
+}

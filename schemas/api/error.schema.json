@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://imgui.studio/schemas/error/v1.json",
+  "title": "ImGui Studio API error envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "error"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "retryable", "details", "requestId"],
+      "properties": {
+        "code": {
+          "enum": [
+            "INVALID_REQUEST",
+            "UNSUPPORTED_VERSION",
+            "UNAUTHORIZED",
+            "PROJECT_NOT_FOUND",
+            "PROJECT_INVALID",
+            "PATH_OUTSIDE_PROJECT",
+            "FILE_NOT_FOUND",
+            "REVISION_CONFLICT",
+            "BUILD_ALREADY_RUNNING",
+            "BUILD_FAILED",
+            "BUILD_NOT_FOUND",
+            "PREVIEW_NOT_READY",
+            "PREVIEW_IDENTITY_MISMATCH",
+            "PREVIEW_REVISION_MISMATCH",
+            "FRAME_NOT_FOUND",
+            "TARGET_NOT_FOUND",
+            "TARGET_NOT_INTERACTABLE",
+            "SCENARIO_INVALID",
+            "INSPECTION_FAILED",
+            "CAPTURE_FAILED",
+            "REFERENCE_NOT_FOUND",
+            "ASSET_INVALID",
+            "EXPORT_REQUIRES_SUCCESSFUL_BUILD",
+            "OPERATION_NOT_FOUND",
+            "OPERATION_CANCELLED",
+            "LIMIT_EXCEEDED",
+            "INTERNAL_ERROR"
+          ]
+        },
+        "message": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "retryable": { "type": "boolean" },
+        "details": { "type": "object", "additionalProperties": true },
+        "requestId": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "scenario.schema.json",
+  "expectedKeyword": "minimum",
+  "document": {
+    "schemaVersion": 1,
+    "id": "settings.invalid",
+    "name": "Invalid time",
+    "reset": "clean",
+    "viewport": { "widthPx": 900, "heightPx": 600, "dpiScaleMilli": 1000 },
+    "steps": [
+      { "sequence": 0, "atUs": -1, "action": "move", "target": { "widgetId": "settings.enable" } }
+    ],
+    "capture": { "startUs": 0, "endUs": 1000000, "fps": 12, "includeInspection": true }
+  }
+}

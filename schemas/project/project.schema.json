@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://imgui.studio/schemas/project/v1.json",
+  "title": "ImGui Studio project manifest v1",
+  "description": "Canonical studio.project.json manifest for a portable C++ project.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "name",
+    "projectKey",
+    "renderingTier",
+    "language",
+    "toolchain",
+    "entryPoint",
+    "sources",
+    "includeDirectories",
+    "defines",
+    "viewport",
+    "assetsManifest",
+    "referencesManifest",
+    "scenarioGlobs",
+    "managedFiles",
+    "export"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1, "description": "Project schema major version." },
+    "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "projectKey": { "$ref": "#/$defs/projectKey" },
+    "renderingTier": { "const": "portable" },
+    "language": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cppStandard"],
+      "properties": { "cppStandard": { "const": 20 } }
+    },
+    "toolchain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["versionSet", "imguiVersion", "emscriptenVersion", "studioRuntimeVersion"],
+      "properties": {
+        "versionSet": { "type": "string", "minLength": 1 },
+        "imguiVersion": { "$ref": "#/$defs/version" },
+        "emscriptenVersion": { "$ref": "#/$defs/version" },
+        "studioRuntimeVersion": { "$ref": "#/$defs/version" }
+      }
+    },
+    "entryPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["initialize", "resetSampleState", "render", "shutdown"],
+      "properties": {
+        "initialize": { "type": "string", "minLength": 1 },
+        "resetSampleState": { "type": "string", "minLength": 1 },
+        "render": { "type": "string", "minLength": 1 },
+        "shutdown": { "type": "string", "minLength": 1 }
+      }
+    },
+    "sources": { "$ref": "#/$defs/nonEmptyPathArray" },
+    "includeDirectories": { "$ref": "#/$defs/pathArray" },
+    "defines": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*(?:=[^\\r\\n]*)?$" },
+      "uniqueItems": true
+    },
+    "viewport": { "$ref": "#/$defs/viewport" },
+    "assetsManifest": { "$ref": "#/$defs/path" },
+    "referencesManifest": { "$ref": "#/$defs/path" },
+    "scenarioGlobs": { "$ref": "#/$defs/pathArray" },
+    "managedFiles": { "$ref": "#/$defs/pathArray" },
+    "export": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["publicHeaders", "sourceGlobs", "licenseGlobs"],
+      "properties": {
+        "publicHeaders": { "$ref": "#/$defs/pathArray" },
+        "sourceGlobs": { "$ref": "#/$defs/nonEmptyPathArray" },
+        "licenseGlobs": { "$ref": "#/$defs/pathArray" }
+      }
+    }
+  },
+  "$defs": {
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "projectKey": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$" },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 260,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*\\\\)(?!.*\\u0000).+$"
+    },
+    "pathArray": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/path" },
+      "uniqueItems": true
+    },
+    "nonEmptyPathArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/path" },
+      "uniqueItems": true
+    },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["widthPx", "heightPx", "dpiScaleMilli", "clearColorRgba8"],
+      "properties": {
+        "widthPx": { "type": "integer", "minimum": 64, "maximum": 8192 },
+        "heightPx": { "type": "integer", "minimum": 64, "maximum": 8192 },
+        "dpiScaleMilli": { "type": "integer", "minimum": 500, "maximum": 4000 },
+        "clearColorRgba8": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "type": "integer", "minimum": 0, "maximum": 255 }
+        }
+      }
+    }
+  }
+}

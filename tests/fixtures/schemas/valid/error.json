@@ -1,0 +1,13 @@
+{
+  "schema": "error.schema.json",
+  "document": {
+    "schemaVersion": 1,
+    "error": {
+      "code": "REVISION_CONFLICT",
+      "message": "The project changed after this patch was prepared.",
+      "retryable": true,
+      "details": { "expectedRevision": "1", "currentRevision": "2" },
+      "requestId": "req_test"
+    }
+  }
+}
