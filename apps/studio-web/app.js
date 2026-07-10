@@ -20,6 +20,13 @@ const elements = Object.fromEntries(
     'preview',
     'preview-empty',
     'geometry-value',
+    'restart-button',
+    'play-button',
+    'pause-button',
+    'step-button',
+    'speed-input',
+    'seek-input',
+    'seek-button',
   ].map((id) => [id, document.getElementById(id)]),
 );
 
@@ -31,6 +38,35 @@ let suppressEditorChange = false;
 await authorizePreviewOrigin();
 await initializeProject();
 
+let lastPreviewTimeUs = 0;
+const sendRuntimeCommand = (command) =>
+  elements.preview.contentWindow?.postMessage(command, 'http://127.0.0.1:4174');
+elements['restart-button'].addEventListener('click', () =>
+  sendRuntimeCommand({ type: 'studio.runtime.reset' }),
+);
+elements['play-button'].addEventListener('click', () =>
+  sendRuntimeCommand({ type: 'studio.runtime.play' }),
+);
+elements['pause-button'].addEventListener('click', () =>
+  sendRuntimeCommand({ type: 'studio.runtime.render', timeUs: lastPreviewTimeUs }),
+);
+elements['step-button'].addEventListener('click', () =>
+  sendRuntimeCommand({ type: 'studio.runtime.render', timeUs: lastPreviewTimeUs + 16_667 }),
+);
+elements['speed-input'].addEventListener('change', () =>
+  sendRuntimeCommand({
+    type: 'studio.runtime.speed',
+    speed: Number(elements['speed-input'].value),
+  }),
+);
+elements['seek-button'].addEventListener('click', () => {
+  const timeUs = Number(elements['seek-input'].value);
+  if (Number.isSafeInteger(timeUs) && timeUs >= 0) {
+    if (timeUs < lastPreviewTimeUs) sendRuntimeCommand({ type: 'studio.runtime.reset' });
+    sendRuntimeCommand({ type: 'studio.runtime.render', timeUs });
+  }
+});
+
 window.addEventListener('message', (event) => {
   if (event.origin !== 'http://127.0.0.1:4174' || event.source !== elements.preview.contentWindow)
     return;
@@ -40,6 +76,8 @@ window.addEventListener('message', (event) => {
     elements['preview-status'].textContent = 'Preview ready';
     elements['preview-status'].className = 'status status-ready';
   } else if (message.type === 'studio.preview.frame' && message.toggle) {
+    lastPreviewTimeUs = message.clock?.timeUs ?? lastPreviewTimeUs;
+    elements['seek-input'].value = String(lastPreviewTimeUs);
     const bounds = message.toggle;
     elements['geometry-value'].textContent =
       `${bounds.xPx.toFixed(1)}, ${bounds.yPx.toFixed(1)} · ${bounds.widthPx.toFixed(1)} × ${bounds.heightPx.toFixed(1)}`;

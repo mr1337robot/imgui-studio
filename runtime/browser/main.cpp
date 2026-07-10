@@ -1,11 +1,15 @@
 #include <GLFW/glfw3.h>
+#include <algorithm>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
+#include <cmath>
 #include <cstdlib>
 #include <emscripten.h>
 #include <emscripten/html5.h>
 #include <imgui.h>
 #include <iostream>
+#include <memory>
+#include <studio/runtime.hpp>
 #include <studio_example/menu.hpp>
 
 // This executable is the browser platform edge. It owns GLFW, WebGL, the ImGui context, and the
@@ -20,6 +24,9 @@ struct Application {
     // returns and passes it back to RenderFrame on the browser's animation loop.
     GLFWwindow* window{};
     studio_example::MenuState menuState{};
+    std::unique_ptr<studio::ProjectContext> runtime;
+    std::int64_t timeUs{};
+    std::uint64_t frameIndex{};
     bool readySent{};
 };
 
@@ -41,7 +48,7 @@ EM_JS(void, PostReady, (), {
 });
 
 EM_JS(void, PostFrame,
-      (const char* sourceSha256, int enabled, float progress, float xPx, float yPx, float widthPx, float heightPx), {
+      (const char* sourceSha256, int enabled, float progress, int settled, double timeUs, double frameIndex, float xPx, float yPx, float widthPx, float heightPx), {
           const identity = window.__studioIdentity;
           const frame = {
               protocolVersion: 1,
@@ -51,6 +58,7 @@ EM_JS(void, PostFrame,
               viewport: { widthPx: 900, heightPx: 600, dpiScaleMilli: 1000 },
               framebuffer: { format: 'rgba8', colorSpace: 'srgb' },
               sourceSha256: UTF8ToString(sourceSha256),
+              clock: { mode: 'deterministic', timeUs, frameIndex },
               toggle: {
                   xPx,
                   yPx,
@@ -58,6 +66,8 @@ EM_JS(void, PostFrame,
                   heightPx,
                   enabled: Boolean(enabled),
                   progress,
+                  settled: Boolean(settled),
+                  widgetId: 'settings.enable',
               },
           };
           window.__studioLastFrame = frame;
@@ -124,6 +134,20 @@ EM_JS(void, CaptureIfRequested, (), {
         });
     }, 'image/png');
 });
+
+EM_JS(double, RequestedDeterministicTimeUs, (), {
+    return Number.isSafeInteger(window.__studioDeterministicTimeUs)
+        ? window.__studioDeterministicTimeUs
+        : -1;
+});
+
+EM_JS(int, ConsumeResetRequest, (), {
+    if (!window.__studioResetRequested) return 0;
+    window.__studioResetRequested = false;
+    return 1;
+});
+
+EM_JS(double, PlaybackSpeed, (), { return window.__studioPlaybackSpeed ?? 1; });
 // clang-format on
 
 void RenderFrame(void* userData) {
@@ -137,8 +161,30 @@ void RenderFrame(void* userData) {
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = {static_cast<float>(kViewportWidthPx), static_cast<float>(kViewportHeightPx)};
     ImGui::NewFrame();
+    if (ConsumeResetRequest() != 0) {
+        studio_example::ResetMenuState(application.menuState);
+        application.runtime->ResetRuntimeState();
+        application.timeUs = 0;
+        application.frameIndex = 0;
+        ImGui::GetIO().ClearInputKeys();
+        ImGui::GetIO().ClearInputMouse();
+    }
+    const auto requestedTimeUs = static_cast<std::int64_t>(RequestedDeterministicTimeUs());
+    const auto realtimeDeltaUs =
+        static_cast<std::int64_t>(std::llround(io.DeltaTime * PlaybackSpeed() * 1'000'000.0));
+    const auto nextTimeUs = requestedTimeUs >= application.timeUs
+                                ? requestedTimeUs
+                                : application.timeUs + std::max<std::int64_t>(0, realtimeDeltaUs);
+    const auto deltaUs = nextTimeUs - application.timeUs;
+    application.timeUs = nextTimeUs;
+    studio::BeginFrame(*application.runtime, {.frameIndex = application.frameIndex++,
+                                              .absoluteTimeUs = application.timeUs,
+                                              .deltaTimeUs = std::max<std::int64_t>(0, deltaUs),
+                                              .viewportPixels = io.DisplaySize,
+                                              .dpiScale = 1.0F});
     const studio_example::MenuDiagnostics diagnostics =
-        studio_example::RenderMenu(application.menuState, io.DeltaTime);
+        studio_example::RenderMenu(application.menuState);
+    studio::EndFrame(*application.runtime);
     ImGui::Render();
 
     glViewport(0, 0, kViewportWidthPx, kViewportHeightPx);
@@ -146,7 +192,9 @@ void RenderFrame(void* userData) {
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     PostFrame(studio_example::StarterSourceSha256().data(), diagnostics.toggleEnabled ? 1 : 0,
-              diagnostics.toggleProgress, diagnostics.toggleBounds.xPx,
+              diagnostics.toggleProgress, diagnostics.toggleSettled ? 1 : 0,
+              static_cast<double>(application.timeUs),
+              static_cast<double>(application.frameIndex - 1), diagnostics.toggleBounds.xPx,
               diagnostics.toggleBounds.yPx, diagnostics.toggleBounds.widthPx,
               diagnostics.toggleBounds.heightPx);
     // Capture after ImGui has submitted its draw data but before swap/presentation can invalidate
@@ -201,6 +249,9 @@ int main() {
     // storage therefore makes the callback's user-data lifetime explicit and process-long.
     static Application application;
     application.window = window;
+    application.runtime = std::make_unique<studio::ProjectContext>(
+        *ImGui::GetCurrentContext(),
+        studio::ProjectContextConfig{.mode = studio::RuntimeMode::Deterministic});
     studio_example::ResetMenuState(application.menuState);
     emscripten_set_main_loop_arg(RenderFrame, &application, 0, true);
     return EXIT_SUCCESS;

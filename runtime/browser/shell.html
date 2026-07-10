@@ -69,6 +69,31 @@
           buildId: parameters.get('buildId') ?? 'bld_phase1_fixture',
           previewInstanceId: parameters.get('previewInstanceId') ?? 'prv_phase1_fixture',
         };
+        window.__studioDeterministicTimeUs = null;
+        window.__studioPlaybackSpeed = 1;
+        window.__studioResetRequested = false;
+        window.addEventListener('message', (event) => {
+          if (event.origin !== window.__studioParentOrigin) return;
+          const command = event.data;
+          if (command?.type === 'studio.runtime.reset') {
+            window.__studioResetRequested = true;
+            window.__studioDeterministicTimeUs = 0;
+          } else if (
+            command?.type === 'studio.runtime.render' &&
+            Number.isSafeInteger(command.timeUs)
+          ) {
+            window.__studioDeterministicTimeUs = command.timeUs;
+          } else if (command?.type === 'studio.runtime.play') {
+            window.__studioDeterministicTimeUs = null;
+          } else if (
+            command?.type === 'studio.runtime.speed' &&
+            Number.isFinite(command.speed) &&
+            command.speed >= 0 &&
+            command.speed <= 16
+          ) {
+            window.__studioPlaybackSpeed = command.speed;
+          }
+        });
         window.__studioLastFrame = null;
         window.__studioCaptureRequest = null;
 

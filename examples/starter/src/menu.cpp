@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <imgui.h>
+#include <studio/studio.hpp>
 #include <studio_example/menu.hpp>
 
 namespace studio_example {
@@ -24,7 +25,6 @@ constexpr float kPanelHeightPx = 340.0F;
 constexpr float kPanelRoundingPx = 18.0F;
 constexpr float kToggleWidthPx = 58.0F;
 constexpr float kToggleHeightPx = 30.0F;
-constexpr float kAnimationResponse = 13.0F;
 
 [[nodiscard]] ImU32 LerpColor(ImU32 from, ImU32 to, float amount) {
     // ImGui packs colors into an integer for draw commands. Convert to normalized float channels
@@ -53,38 +53,31 @@ void DrawGlowRect(ImDrawList& drawList, const ImVec2 minimum, const ImVec2 maxim
 }
 
 [[nodiscard]] WidgetGeometry RenderAnimatedToggle(MenuState& state, const ImVec2 position,
-                                                  const float deltaSeconds) {
-    // InvisibleButton participates in ImGui's normal ID, hover, focus, and click systems while
-    // leaving every visible pixel to this custom widget. The hidden "##" prefix gives the item a
-    // stable ID without rendering a label.
-    ImGui::SetCursorScreenPos(position);
-    const bool clicked =
-        ImGui::InvisibleButton("##studio-enabled-toggle", {kToggleWidthPx, kToggleHeightPx});
-    if (clicked) {
+                                                  float& progress, bool& settled) {
+    const ImGuiID id = ImGui::GetID("##studio-enabled-toggle");
+    const studio::Rect bounds{position,
+                              {position.x + kToggleWidthPx, position.y + kToggleHeightPx}};
+    const studio::Interaction interaction = studio::Interact({
+        .stableId = "settings.enable",
+        .semanticType = "animated_toggle",
+        .imguiId = id,
+        .bounds = bounds,
+        .hitbox = bounds,
+        .layoutSize = {kToggleWidthPx, kToggleHeightPx},
+    });
+    if (interaction.pressed) {
         state.enabled = !state.enabled;
     }
-
-    const float target = state.enabled ? 1.0F : 0.0F;
-    // Frame-rate-independent exponential smoothing:
-    //   response = 1 - e^(-speed * dt)
-    // Moving `progress` by this fraction of the remaining distance produces the same shape at
-    // different frame rates. Clamp dt to 100 ms so a debugger pause cannot jump through the whole
-    // transition or feed an unstable value into exp(). Phase 3 replaces host delta time with the
-    // deterministic Studio clock while retaining project-owned state.
-    const float safeDelta = std::clamp(deltaSeconds, 0.0F, 0.1F);
-    const float response = 1.0F - std::exp(-kAnimationResponse * safeDelta);
-    state.toggleProgress =
-        std::clamp(state.toggleProgress + ((target - state.toggleProgress) * response), 0.0F, 1.0F);
-
-    const bool hovered = ImGui::IsItemHovered();
+    progress = studio::Animate(id, studio::Key("active"), state.enabled ? 1.0F : 0.0F,
+                               {.duration = 0.22, .ease = studio::Ease::OutCubic});
+    settled = studio::GetAnimationStatus(id, studio::Key("active")).settled;
+    const bool hovered = interaction.hovered;
     ImDrawList& drawList = *ImGui::GetWindowDrawList();
     const ImVec2 maximum{position.x + kToggleWidthPx, position.y + kToggleHeightPx};
-    const ImU32 background =
-        LerpColor(IM_COL32(55, 58, 81, 255), kAccentPurple, state.toggleProgress);
+    const ImU32 background = LerpColor(IM_COL32(55, 58, 81, 255), kAccentPurple, progress);
 
-    if (hovered || state.toggleProgress > 0.02F) {
-        DrawGlowRect(drawList, position, maximum,
-                     LerpColor(kAccentPurple, kAccentPink, state.toggleProgress),
+    if (hovered || progress > 0.02F) {
+        DrawGlowRect(drawList, position, maximum, LerpColor(kAccentPurple, kAccentPink, progress),
                      kToggleHeightPx * 0.5F);
     }
 
@@ -96,8 +89,7 @@ void DrawGlowRect(ImDrawList& drawList, const ImVec2 minimum, const ImVec2 maxim
     // track color, and glow keeps all visual channels synchronized during target reversal.
     constexpr float knobRadius = 11.0F;
     const float knobMinimumX = position.x + 15.0F;
-    const float knobX =
-        knobMinimumX + (((maximum.x - 15.0F) - knobMinimumX) * state.toggleProgress);
+    const float knobX = knobMinimumX + (((maximum.x - 15.0F) - knobMinimumX) * progress);
     drawList.AddCircleFilled({knobX, position.y + (kToggleHeightPx * 0.5F)}, knobRadius + 2.0F,
                              IM_COL32(15, 12, 28, 90));
     drawList.AddCircleFilled({knobX, position.y + (kToggleHeightPx * 0.5F)}, knobRadius,
@@ -135,7 +127,7 @@ void ResetMenuState(MenuState& state) noexcept {
     state = MenuState{};
 }
 
-MenuDiagnostics RenderMenu(MenuState& state, const float deltaSeconds) {
+MenuDiagnostics RenderMenu(MenuState& state) {
     // This transparent, decoration-free ImGui window exists only to establish an input/layout
     // scope. The menu itself is drawn into its ImDrawList rather than assembled from stock widgets.
     ImGuiIO& io = ImGui::GetIO();
@@ -185,7 +177,10 @@ MenuDiagnostics RenderMenu(MenuState& state, const float deltaSeconds) {
     drawList.AddText({cardMinimum.x + 24.0F, cardMinimum.y + 132.0F}, kTextSecondary,
                      "Click the custom toggle to inspect its transition.");
     const ImVec2 togglePosition{cardMaximum.x - kToggleWidthPx - 24.0F, cardMinimum.y + 106.0F};
-    const WidgetGeometry toggleBounds = RenderAnimatedToggle(state, togglePosition, deltaSeconds);
+    float toggleProgress{};
+    bool toggleSettled{};
+    const WidgetGeometry toggleBounds =
+        RenderAnimatedToggle(state, togglePosition, toggleProgress, toggleSettled);
 
     const float statusY = cardMaximum.y - 55.0F;
     drawList.AddCircleFilled({cardMinimum.x + 29.0F, statusY + 6.0F}, 5.0F,
@@ -199,7 +194,7 @@ MenuDiagnostics RenderMenu(MenuState& state, const float deltaSeconds) {
     ImGui::PopStyleColor();
     ImGui::PopStyleVar(2);
 
-    return {toggleBounds, state.enabled, state.toggleProgress};
+    return {toggleBounds, state.enabled, toggleProgress, toggleSettled};
 }
 
 std::string_view StarterSourceSha256() noexcept {

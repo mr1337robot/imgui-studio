@@ -27,7 +27,7 @@
   },
   "assetsManifest": "assets/assets.json",
   "referencesManifest": "references/references.json",
-  "scenarioGlobs": [],
+  "scenarioGlobs": ["scenarios/*.scenario.json"],
   "managedFiles": [],
   "export": {
     "publicHeaders": ["include/**/*.hpp"],

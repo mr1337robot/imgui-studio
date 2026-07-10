@@ -11,6 +11,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <studio/runtime.hpp>
 #include <studio_example/menu.hpp>
 #include <windows.h>
 #include <wrl/client.h>
@@ -260,6 +261,12 @@ int main(int argumentCount, char** arguments) {
     studio_example::ResetMenuState(menuState);
     menuState.layoutOffsetXPx = commandLine->layoutOffsetXPx;
     studio_example::MenuDiagnostics diagnostics;
+    studio::ProjectContext runtime(*ImGui::GetCurrentContext(),
+                                   {.mode = commandLine->interactive
+                                                ? studio::RuntimeMode::Realtime
+                                                : studio::RuntimeMode::Deterministic});
+    std::int64_t runtimeTimeUs{};
+    std::uint64_t runtimeFrameIndex{};
 
     if (commandLine->interactive) {
         // Capture mode intentionally keeps the window hidden. Interactive mode makes the same
@@ -298,7 +305,18 @@ int main(int argumentCount, char** arguments) {
             io.DeltaTime = 1.0F / 60.0F;
         }
         ImGui::NewFrame();
-        diagnostics = studio_example::RenderMenu(menuState, io.DeltaTime);
+        const std::int64_t deltaUs =
+            commandLine->interactive
+                ? static_cast<std::int64_t>(std::llround(io.DeltaTime * 1'000'000.0))
+                : (runtimeFrameIndex == 0 ? 0 : 16'667);
+        runtimeTimeUs += deltaUs;
+        studio::BeginFrame(runtime, {.frameIndex = runtimeFrameIndex++,
+                                     .absoluteTimeUs = runtimeTimeUs,
+                                     .deltaTimeUs = deltaUs,
+                                     .viewportPixels = io.DisplaySize,
+                                     .dpiScale = 1.0F});
+        diagnostics = studio_example::RenderMenu(menuState);
+        studio::EndFrame(runtime);
         ImGui::Render();
 
         constexpr float clearColor[4]{0.0F, 0.0F, 0.0F, 1.0F};

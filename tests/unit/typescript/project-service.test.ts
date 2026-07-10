@@ -30,11 +30,7 @@ afterEach(async () => {
 describe('canonical project revisions', () => {
   it('advances exactly once for a valid patch and persists the revision', async () => {
     const file = required((await project.readFiles(['src/menu.cpp'], '0'))[0]);
-    const patch = replacementPatch(
-      file.content,
-      'kAnimationResponse = 13.0F',
-      'kAnimationResponse = 14.0F',
-    );
+    const patch = replacementPatch(file.content, 'duration = 0.22', 'duration = 0.24');
     const result = await project.applyPatches('0', [
       { path: file.path, expectedSha256: file.sha256, unifiedDiff: patch },
     ]);
@@ -42,7 +38,7 @@ describe('canonical project revisions', () => {
     expect(result.previousRevision).toBe('0');
     expect(result.revision).toBe('1');
     expect(required((await project.readFiles(['src/menu.cpp'], '1'))[0]).content).toContain(
-      'kAnimationResponse = 14.0F',
+      'duration = 0.24',
     );
     expect((await ProjectService.open(projectRoot, repositoryRoot)).currentRevision).toBe('1');
   });
@@ -51,11 +47,7 @@ describe('canonical project revisions', () => {
     const path = resolve(projectRoot, 'src/menu.cpp');
     const before = await readFile(path);
     const file = required((await project.readFiles(['src/menu.cpp']))[0]);
-    const patch = replacementPatch(
-      file.content,
-      'kAnimationResponse = 13.0F',
-      'kAnimationResponse = 14.0F',
-    );
+    const patch = replacementPatch(file.content, 'duration = 0.22', 'duration = 0.24');
 
     await expect(
       project.applyPatches('9', [
@@ -77,22 +69,14 @@ describe('canonical project revisions', () => {
       {
         path: file.path,
         expectedSha256: file.sha256,
-        unifiedDiff: replacementPatch(
-          file.content,
-          'kAnimationResponse = 13.0F',
-          'kAnimationResponse = 14.0F',
-        ),
+        unifiedDiff: replacementPatch(file.content, 'duration = 0.22', 'duration = 0.24'),
       },
     ]);
     const second = project.applyPatches('0', [
       {
         path: file.path,
         expectedSha256: file.sha256,
-        unifiedDiff: replacementPatch(
-          file.content,
-          'kAnimationResponse = 13.0F',
-          'kAnimationResponse = 15.0F',
-        ),
+        unifiedDiff: replacementPatch(file.content, 'duration = 0.22', 'duration = 0.26'),
       },
     ]);
     const outcomes = await Promise.allSettled([first, second]);

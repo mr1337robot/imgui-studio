@@ -123,6 +123,31 @@ button:disabled {
   letter-spacing: 0.08em;
 }
 
+.timeline-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.timeline-controls button,
+.timeline-controls input {
+  min-height: 25px;
+  padding: 3px 6px;
+  font-size: 11px;
+}
+.timeline-controls label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+}
+.timeline-controls input {
+  width: 70px;
+  border: 1px solid rgb(126 88 210 / 40%);
+  border-radius: 4px;
+  background: #111424;
+  color: #ddd9ee;
+}
+
 .stale-indicator {
   font-size: 9px;
 }

@@ -13,9 +13,6 @@ struct MenuState {
     /// Logical value controlled by the toggle.
     bool enabled{true};
 
-    /// Current visual interpolation in [0, 1], independent of `enabled` while animating.
-    float toggleProgress{1.0F};
-
     /// Test-only horizontal offset in framebuffer pixels for the negative parity fixture.
     float layoutOffsetXPx{0.0F};
 };
@@ -40,6 +37,8 @@ struct MenuDiagnostics {
     bool toggleEnabled{};
     /// Visual interpolation value after this frame's animation step.
     float toggleProgress{};
+    /// True when the runtime tween has reached its exact target.
+    bool toggleSettled{};
 };
 
 /// Restores the starter project to its canonical sample state.
@@ -48,9 +47,8 @@ void ResetMenuState(MenuState& state) noexcept;
 /// Renders the shared starter menu into the current Dear ImGui frame.
 ///
 /// @param state Host-owned application and animation state.
-/// @param deltaSeconds Non-negative frame delta in seconds.
 /// @return Geometry and state produced by this exact frame.
-[[nodiscard]] MenuDiagnostics RenderMenu(MenuState& state, float deltaSeconds);
+[[nodiscard]] MenuDiagnostics RenderMenu(MenuState& state);
 
 /// Returns the build-time identity of the shared starter source.
 ///

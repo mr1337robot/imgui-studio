@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -99,6 +99,67 @@ try {
   });
   await previewFrame.waitForFunction(() => globalThis.__studioLastFrame?.toggle?.enabled === true);
   await previewFrame.waitForTimeout(300);
+
+  // Replay the same clean deterministic transition three times. The C++ runtime receives only
+  // integer microsecond commands; wall-clock delay affects when Playwright observes a frame, not
+  // the animation value evaluated for that frame.
+  const traces = [];
+  for (let run = 0; run < 3; run += 1) {
+    await page.locator('#preview').evaluate((preview) => {
+      preview.contentWindow.postMessage({ type: 'studio.runtime.reset' }, 'http://127.0.0.1:4174');
+    });
+    await previewFrame.waitForFunction(
+      () =>
+        globalThis.__studioLastFrame?.clock?.timeUs === 0 &&
+        globalThis.__studioLastFrame?.toggle?.enabled,
+    );
+    const resetFrame = await previewFrame.evaluate(() => globalThis.__studioLastFrame);
+    await previewFrame.locator('#canvas').click({
+      position: {
+        x: resetFrame.toggle.xPx + resetFrame.toggle.widthPx / 2,
+        y: resetFrame.toggle.yPx + resetFrame.toggle.heightPx / 2,
+      },
+    });
+    await previewFrame.waitForFunction(
+      () => globalThis.__studioLastFrame?.toggle?.enabled === false,
+    );
+    const trace = [];
+    for (const timeUs of [0, 110_000, 220_000]) {
+      await page.locator('#preview').evaluate((preview, requestedTimeUs) => {
+        preview.contentWindow.postMessage(
+          { type: 'studio.runtime.render', timeUs: requestedTimeUs },
+          'http://127.0.0.1:4174',
+        );
+      }, timeUs);
+      await previewFrame.waitForFunction(
+        (requestedTimeUs) => globalThis.__studioLastFrame?.clock?.timeUs === requestedTimeUs,
+        timeUs,
+      );
+      const frame = await previewFrame.evaluate(() => globalThis.__studioLastFrame);
+      trace.push({
+        timeUs: frame.clock.timeUs,
+        enabled: frame.toggle.enabled,
+        progressMillionths: Math.round(frame.toggle.progress * 1_000_000),
+        settled: frame.toggle.settled,
+        widgetId: frame.toggle.widgetId,
+      });
+      if (run === 0) {
+        await previewFrame.locator('#canvas').screenshot({
+          path: resolve(outputRoot, `filmstrip-${String(timeUs).padStart(6, '0')}.png`),
+        });
+      }
+    }
+    traces.push(trace);
+  }
+  assert(
+    JSON.stringify(traces[0]) === JSON.stringify(traces[1]) &&
+      JSON.stringify(traces[1]) === JSON.stringify(traces[2]),
+    'Three clean deterministic toggle traces were not byte-identical.',
+  );
+  writeFileSync(
+    resolve(outputRoot, 'deterministic-filmstrip.json'),
+    `${JSON.stringify({ schemaVersion: 1, fps: 10, widgetId: 'settings.enable', traces }, null, 2)}\n`,
+  );
 
   // Use the public Studio control for canonical capture; a Playwright canvas screenshot would
   // include browser presentation behavior rather than the explicit WebGL readback path.

@@ -80,9 +80,7 @@ describe('Phase 2 HTTP authority', () => {
     });
     const file = asRecord(asArray(asRecord(read.body).files)[0]);
     const sourceLines = asString(file.content).split(/\r?\n/);
-    const sourceIndex = sourceLines.findIndex((line: string) =>
-      line.includes('kAnimationResponse'),
-    );
+    const sourceIndex = sourceLines.findIndex((line: string) => line.includes('duration = 0.22'));
     const sourceLine = asString(sourceLines[sourceIndex]);
     const sourceLineNumber = String(sourceIndex + 1);
     const requestBody = {
@@ -91,7 +89,7 @@ describe('Phase 2 HTTP authority', () => {
         {
           path: 'src/menu.cpp',
           expectedSha256: asString(file.sha256),
-          unifiedDiff: `@@ -${sourceLineNumber},1 +${sourceLineNumber},1 @@\n-${sourceLine}\n+${sourceLine.replace('13.0F', '13.5F')}\n`,
+          unifiedDiff: `@@ -${sourceLineNumber},1 +${sourceLineNumber},1 @@\n-${sourceLine}\n+${sourceLine.replace('0.22', '0.24')}\n`,
         },
       ],
       reason: 'HTTP integration fixture',
@@ -150,7 +148,7 @@ describe('Phase 2 HTTP authority', () => {
     const file = asRecord(asArray(asRecord(read.body).files)[0]);
     const content = asString(file.content);
     const lines = content.split(/\r?\n/);
-    const index = lines.findIndex((line) => line.includes('kAnimationResponse'));
+    const index = lines.findIndex((line) => line.includes('duration = 0.24'));
     const line = asString(lines[index]);
     const lineNumber = String(index + 1);
     const mutation = await jsonRequest(`/api/v1/projects/${project.projectId}/files:patch`, {
@@ -162,7 +160,7 @@ describe('Phase 2 HTTP authority', () => {
           {
             path: 'src/menu.cpp',
             expectedSha256: asString(file.sha256),
-            unifiedDiff: `@@ -${lineNumber},1 +${lineNumber},1 @@\n-${line}\n+${line.replace('13.5F', '13.6F')}\n`,
+            unifiedDiff: `@@ -${lineNumber},1 +${lineNumber},1 @@\n-${line}\n+${line.replace('0.24', '0.26')}\n`,
           },
         ],
       }),

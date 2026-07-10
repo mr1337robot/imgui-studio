@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "settings.toggle-transition",
+  "name": "Toggle deterministic transition",
+  "reset": "clean",
+  "viewport": { "widthPx": 900, "heightPx": 600, "dpiScaleMilli": 1000 },
+  "steps": [
+    {
+      "sequence": 0,
+      "atUs": 0,
+      "action": "click",
+      "target": { "widgetId": "settings.enable" },
+      "button": "left"
+    }
+  ],
+  "capture": { "startUs": 0, "endUs": 220000, "fps": 10, "includeInspection": true }
+}

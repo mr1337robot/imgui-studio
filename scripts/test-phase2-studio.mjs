@@ -55,12 +55,12 @@ try {
   await page.locator('.monaco-editor').waitFor({ timeout: 15_000 });
   await page.getByRole('button', { name: 'src/menu.cpp' }).click();
   await page.waitForFunction(() =>
-    globalThis.monaco?.editor.getModels()[0]?.getValue().includes('kAnimationResponse'),
+    globalThis.monaco?.editor.getModels()[0]?.getValue().includes('duration = 0.22'),
   );
 
   // Drive a real Monaco edit through the public UI. Build preview saves the revision first, then
   // waits for the cached build and smoke-gated replacement preview.
-  await setEditorText('13.0F', '14.0F');
+  await setEditorText('duration = 0.22', 'duration = 0.24');
   await page.getByRole('button', { name: 'Build preview' }).click();
   await page.getByText('Build succeeded', { exact: true }).waitFor({ timeout: 60_000 });
   await page.getByText('Preview ready', { exact: true }).waitFor({ timeout: 15_000 });
@@ -76,10 +76,7 @@ try {
 
   // Introduce a compiler error. The build must fail visibly while the successful iframe URL stays
   // untouched and receives an explicit stale marker.
-  await setEditorText(
-    'constexpr float kAnimationResponse = 14.0F;',
-    'constexpr float kAnimationResponse = ;',
-  );
+  await setEditorText('duration = 0.24', 'duration =');
   await page.getByRole('button', { name: 'Build preview' }).click();
   await page.getByText('Build failed', { exact: true }).waitFor({ timeout: 60_000 });
   await page.getByText('PREVIEW STALE', { exact: true }).waitFor();

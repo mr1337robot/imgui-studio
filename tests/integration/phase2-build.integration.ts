@@ -49,10 +49,7 @@ try {
   await writeFile(resolve(dirname(cacheManifestPath), stableObject), 'corrupted-cache-entry');
 
   const validFile = await readSource('src/menu.cpp', '0');
-  const brokenSource = validFile.content.replace(
-    'constexpr float kAnimationResponse = 13.0F;',
-    'constexpr float kAnimationResponse = ;',
-  );
+  const brokenSource = validFile.content.replace('.duration = 0.22', '.duration =');
   await patchSource(validFile, brokenSource, '0');
   const failedBuild = await startAndWaitBuild('1');
   assert(failedBuild.status === 'failed', 'Compiler-error fixture unexpectedly succeeded.');
@@ -99,10 +96,7 @@ try {
   );
 
   const brokenFile = await readSource('src/menu.cpp', '1');
-  const repairedSource = brokenFile.content.replace(
-    'constexpr float kAnimationResponse = ;',
-    'constexpr float kAnimationResponse = 14.0F;',
-  );
+  const repairedSource = brokenFile.content.replace('.duration =', '.duration = 0.24');
   await patchSource(brokenFile, repairedSource, '1');
   const replacementBuild = await startAndWaitBuild('2');
   assert(replacementBuild.status === 'succeeded', 'Repaired one-file build did not succeed.');

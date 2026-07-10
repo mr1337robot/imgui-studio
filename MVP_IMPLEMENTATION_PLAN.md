@@ -220,6 +220,9 @@ Acceptance:
 
 ## 7. Phase 3 — Deterministic interaction and animation
 
+**Status: complete.** Shared-runtime and deterministic filmstrip evidence is recorded in
+[`docs/phase-3-completion.md`](docs/phase-3-completion.md).
+
 ### WP3.1 Clock and reset model
 
 Tasks:

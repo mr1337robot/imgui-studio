@@ -4,7 +4,14 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['.tools/**', 'build/**', 'node_modules/**', 'out/**', 'schemas/generated/**'],
+    ignores: [
+      '.tools/**',
+      '**/.studio/**',
+      'build/**',
+      'node_modules/**',
+      'out/**',
+      'schemas/generated/**',
+    ],
   },
   eslint.configs.recommended,
   {
