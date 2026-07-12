@@ -9,6 +9,10 @@ Build first saves modified text, then polls the immutable build record. A succes
 build loads a new iframe and preview instance. A compiler failure leaves the prior iframe untouched
 and marks it stale.
 
+The limited **MANAGED THEME** panel recognizes the starter's accent and animation-duration tokens.
+It patches only the declared `src/studio_managed_theme.cpp` through the same revision/preimage flow;
+it is intentionally not a general C++ parser or a second source authority.
+
 Monaco is pinned and served locally, with no CDN or runtime network dependency. Preview artifacts run
 on the separate authenticated `127.0.0.1:4174` origin.
 

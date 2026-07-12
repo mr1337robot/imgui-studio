@@ -113,6 +113,11 @@ export class BuildCoordinator {
       );
     }
 
+    // Asset validation belongs immediately before immutable snapshotting. This keeps a failed
+    // asset edit from replacing the last known-good preview and gives the caller a stable
+    // `ASSET_INVALID` error instead of a late compiler or browser-host failure.
+    await this.project.validateAssets();
+
     const buildId = `bld_${randomUUID()}`;
     const buildRoot = resolve(this.project.root, `.studio/builds/${buildId}`);
     const snapshotStart = performance.now();

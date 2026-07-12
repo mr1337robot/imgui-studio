@@ -32,6 +32,29 @@
             <span id="stale-indicator" class="stale-indicator" hidden>PREVIEW STALE</span>
           </div>
           <nav id="project-tree" aria-label="Project files"></nav>
+          <section
+            id="theme-editor"
+            class="theme-editor"
+            aria-label="Managed starter theme tokens"
+            hidden
+          >
+            <div class="theme-heading">MANAGED THEME</div>
+            <label>
+              Accent
+              <input
+                id="theme-accent"
+                type="color"
+                value="#eb23ff"
+                aria-label="Theme accent color"
+              />
+            </label>
+            <label>
+              Motion s
+              <input id="theme-duration" type="number" min="0" max="2" step="0.01" value="0.22" />
+            </label>
+            <button id="theme-apply" type="button" disabled>Apply tokens</button>
+            <output id="theme-status">Read-only until the managed theme loads.</output>
+          </section>
         </aside>
 
         <section class="editor-panel" aria-label="C++ source editor">

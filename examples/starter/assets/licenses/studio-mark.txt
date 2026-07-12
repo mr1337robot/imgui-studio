@@ -1,0 +1,5 @@
+ImGui Studio starter mark
+
+Copyright (c) 2026 ImGui Studio contributors.
+
+This original starter asset is supplied with the project under the repository license.

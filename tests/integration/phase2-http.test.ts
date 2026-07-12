@@ -39,11 +39,11 @@ describe('Phase 2 HTTP authority', () => {
     const read = await jsonRequest(`/api/v1/projects/${project.projectId}/files:read`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Studio-Client': 'agent-v1' },
-      body: JSON.stringify({ paths: ['src/menu.cpp'], expectedRevision: '0' }),
+      body: JSON.stringify({ paths: ['src/studio_managed_theme.cpp'], expectedRevision: '0' }),
     });
     expect(read.response.status).toBe(200);
     const file = asRecord(asArray(asRecord(read.body).files)[0]);
-    expect(file.path).toBe('src/menu.cpp');
+    expect(file.path).toBe('src/studio_managed_theme.cpp');
     expect(file.sha256).toMatch(/^[a-f0-9]{64}$/);
   });
 
@@ -76,20 +76,22 @@ describe('Phase 2 HTTP authority', () => {
     const read = await jsonRequest(`/api/v1/projects/${project.projectId}/files:read`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Studio-Client': 'agent-v1' },
-      body: JSON.stringify({ paths: ['src/menu.cpp'], expectedRevision: '0' }),
+      body: JSON.stringify({ paths: ['src/studio_managed_theme.cpp'], expectedRevision: '0' }),
     });
     const file = asRecord(asArray(asRecord(read.body).files)[0]);
     const sourceLines = asString(file.content).split(/\r?\n/);
-    const sourceIndex = sourceLines.findIndex((line: string) => line.includes('duration = 0.22'));
+    const sourceIndex = sourceLines.findIndex((line: string) =>
+      line.includes('animationDurationSeconds = 0.22F'),
+    );
     const sourceLine = asString(sourceLines[sourceIndex]);
     const sourceLineNumber = String(sourceIndex + 1);
     const requestBody = {
       expectedRevision: '0',
       patches: [
         {
-          path: 'src/menu.cpp',
+          path: 'src/studio_managed_theme.cpp',
           expectedSha256: asString(file.sha256),
-          unifiedDiff: `@@ -${sourceLineNumber},1 +${sourceLineNumber},1 @@\n-${sourceLine}\n+${sourceLine.replace('0.22', '0.24')}\n`,
+          unifiedDiff: `@@ -${sourceLineNumber},1 +${sourceLineNumber},1 @@\n-${sourceLine}\n+${sourceLine.replace('0.22F', '0.24F')}\n`,
         },
       ],
       reason: 'HTTP integration fixture',
@@ -143,12 +145,12 @@ describe('Phase 2 HTTP authority', () => {
     const read = await jsonRequest(`/api/v1/projects/${project.projectId}/files:read`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Studio-Client': 'agent-v1' },
-      body: JSON.stringify({ paths: ['src/menu.cpp'], expectedRevision: '1' }),
+      body: JSON.stringify({ paths: ['src/studio_managed_theme.cpp'], expectedRevision: '1' }),
     });
     const file = asRecord(asArray(asRecord(read.body).files)[0]);
     const content = asString(file.content);
     const lines = content.split(/\r?\n/);
-    const index = lines.findIndex((line) => line.includes('duration = 0.24'));
+    const index = lines.findIndex((line) => line.includes('animationDurationSeconds = 0.24F'));
     const line = asString(lines[index]);
     const lineNumber = String(index + 1);
     const mutation = await jsonRequest(`/api/v1/projects/${project.projectId}/files:patch`, {
@@ -158,9 +160,9 @@ describe('Phase 2 HTTP authority', () => {
         expectedRevision: '1',
         patches: [
           {
-            path: 'src/menu.cpp',
+            path: 'src/studio_managed_theme.cpp',
             expectedSha256: asString(file.sha256),
-            unifiedDiff: `@@ -${lineNumber},1 +${lineNumber},1 @@\n-${line}\n+${line.replace('0.24', '0.26')}\n`,
+            unifiedDiff: `@@ -${lineNumber},1 +${lineNumber},1 @@\n-${line}\n+${line.replace('0.24F', '0.26F')}\n`,
           },
         ],
       }),

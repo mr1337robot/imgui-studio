@@ -53,20 +53,32 @@ try {
   );
   await page.getByText('ImGui Studio Starter').waitFor();
   await page.locator('.monaco-editor').waitFor({ timeout: 15_000 });
-  await page.getByRole('button', { name: 'src/menu.cpp' }).click();
+  await page.locator('#theme-editor').waitFor();
+  await page.locator('#theme-duration').fill('0.24');
+  await page.getByRole('button', { name: 'Apply tokens' }).click();
+  await page.getByText('Theme updated. Build preview to promote it.').waitFor();
+  await page.getByText('Revision 1', { exact: true }).waitFor();
+
+  // The limited properties editor has already used one canonical revision. Continue with a Monaco
+  // edit in the same declared managed file to prove property edits do not weaken the normal C++
+  // source/build/stale-preview workflow.
+  await page.getByRole('button', { name: 'src/studio_managed_theme.cpp' }).click();
   await page.waitForFunction(() =>
-    globalThis.monaco?.editor.getModels()[0]?.getValue().includes('duration = 0.22'),
+    globalThis.monaco?.editor
+      .getModels()[0]
+      ?.getValue()
+      .includes('animationDurationSeconds = 0.24F'),
   );
 
   // Drive a real Monaco edit through the public UI. Build preview saves the revision first, then
   // waits for the cached build and smoke-gated replacement preview.
-  await setEditorText('duration = 0.22', 'duration = 0.24');
+  await setEditorText('animationDurationSeconds = 0.24F', 'animationDurationSeconds = 0.26F');
   await page.getByRole('button', { name: 'Build preview' }).click();
   await page.getByText('Build succeeded', { exact: true }).waitFor({ timeout: 60_000 });
   await page.getByText('Preview ready', { exact: true }).waitFor({ timeout: 15_000 });
   const workingPreviewUrl = await page.locator('#preview').getAttribute('src');
   assert(
-    workingPreviewUrl?.includes('projectRevision=1'),
+    workingPreviewUrl?.includes('projectRevision=2'),
     'Successful UI build loaded wrong revision.',
   );
   await page.screenshot({
@@ -76,7 +88,7 @@ try {
 
   // Introduce a compiler error. The build must fail visibly while the successful iframe URL stays
   // untouched and receives an explicit stale marker.
-  await setEditorText('duration = 0.24', 'duration =');
+  await setEditorText('animationDurationSeconds = 0.26F', 'animationDurationSeconds =');
   await page.getByRole('button', { name: 'Build preview' }).click();
   await page.getByText('Build failed', { exact: true }).waitFor({ timeout: 60_000 });
   await page.getByText('PREVIEW STALE', { exact: true }).waitFor();

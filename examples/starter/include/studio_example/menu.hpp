@@ -4,7 +4,7 @@
 
 namespace studio_example {
 
-/// Mutable sample application and animation state for the Phase 1 menu.
+/// Mutable sample application state for the editable Phase 5 component gallery.
 ///
 /// The object is owned by the platform host. It contains no renderer or
 /// platform-specific state and is reset identically in browser and native
@@ -12,6 +12,32 @@ namespace studio_example {
 struct MenuState {
     /// Logical value controlled by the toggle.
     bool enabled{true};
+    /// Enables the custom layered shadow helper for preview cards.
+    bool layeredShadows{true};
+    /// Controls whether the custom modal demonstration is visible.
+    bool modalOpen{};
+    /// Controls the deterministic toast demonstration.
+    bool toastVisible{};
+    /// Opens the custom dropdown list.
+    bool comboOpen{};
+    /// Opens the custom color swatch palette.
+    bool colorPickerOpen{};
+    /// Places the keybind row in keyboard-capture mode.
+    bool keybindCapturing{};
+    /// Selected sidebar semantic section.
+    int navigationIndex{};
+    /// Selected custom tab.
+    int tabIndex{};
+    /// Selected custom dropdown option.
+    int qualityIndex{1};
+    /// Custom integer slider value.
+    int samples{64};
+    /// Custom float slider value.
+    float intensity{0.72F};
+    /// Custom user-selectable accent color.
+    ImU32 accentColor{IM_COL32(235, 35, 255, 255)};
+    /// Named ImGui key retained by the custom keybind control.
+    std::string_view keybind{"F6"};
 
     /// Test-only horizontal offset in framebuffer pixels for the negative parity fixture.
     float layoutOffsetXPx{0.0F};

@@ -45,6 +45,8 @@ npm run studio
 ```
 
 Open `http://127.0.0.1:4173`. Select `src/menu.cpp`, edit it in Monaco, and choose **Build preview**.
+For a safe first visual iteration, use **MANAGED THEME** in the project panel to change the shared
+accent or motion duration; it modifies only `src/studio_managed_theme.cpp`.
 Modified editor text is saved through a revision/preimage-checked patch before the incremental build.
 A successful build replaces the iframe only after Chromium smoke initialization. A compiler error
 shows a structured source location and leaves the previous preview visible with **PREVIEW STALE**.

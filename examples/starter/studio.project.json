@@ -28,10 +28,10 @@
   "assetsManifest": "assets/assets.json",
   "referencesManifest": "references/references.json",
   "scenarioGlobs": ["scenarios/*.scenario.json"],
-  "managedFiles": [],
+  "managedFiles": ["src/studio_managed_theme.cpp"],
   "export": {
     "publicHeaders": ["include/**/*.hpp"],
     "sourceGlobs": ["src/*.cpp"],
-    "licenseGlobs": []
+    "licenseGlobs": ["assets/licenses/**"]
   }
 }

@@ -21,6 +21,8 @@ authenticated preview origin. It discovers the starter under `examples/` by defa
 - `project-discovery.ts` performs bounded traversal without following directory links.
 - `project-service.ts` owns manifest validation, indexing, revisions, immutable snapshots, and
   atomic multi-file transactions.
+- `asset-manifest-validator.ts` validates declared logical asset IDs, attribution, bounded source
+  bytes, SVG safety, raster/font signatures, and path confinement before immutable snapshotting.
 - `filesystem.ts` owns protocol paths, UTF-8 decoding, confinement, and atomic state writes.
 - `unified-diff.ts` applies exact-context patches without fuzzy retargeting.
 - `build-coordinator.ts` owns build state, cancellation, sanitized processes, bounded logs,
@@ -42,7 +44,8 @@ are immutable and digest-checked after restart. Incomplete or corrupt records ar
 
 One build runs per project. Cancellation terminates its process tree. Promotion occurs only after
 compile, link, artifact validation, and a real Chromium initialization smoke frame. Until then, the
-previous preview remains authoritative.
+previous preview remains authoritative. Asset validation runs immediately before snapshot creation,
+so an invalid asset graph fails without replacing the last known-good preview.
 
 ## Security and limits
 
@@ -53,7 +56,7 @@ authenticated authorization.
 
 Paths reject traversal, absolute/alternate forms, and links on every access. Compiler invocation
 uses argument arrays and an allowlisted environment. Requests, patches, files, logs, diagnostics,
-discovery, and builds are bounded.
+discovery, assets, and builds are bounded.
 
 Opening and building a project executes a local C++ toolchain. Review untrusted projects first.
 

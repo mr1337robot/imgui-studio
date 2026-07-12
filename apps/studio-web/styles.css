@@ -156,6 +156,58 @@ button:disabled {
   padding: 10px 7px;
 }
 
+.theme-editor {
+  display: grid;
+  gap: 8px;
+  margin: 8px;
+  padding: 10px;
+  border: 1px solid rgb(113 89 168 / 30%);
+  border-radius: 8px;
+  background: #0c1020;
+}
+
+.theme-heading {
+  color: #b8a8e8;
+  font:
+    700 9px ui-monospace,
+    Consolas,
+    monospace;
+  letter-spacing: 0.1em;
+}
+
+.theme-editor label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  color: #aaa9ba;
+  font-size: 11px;
+}
+
+.theme-editor input {
+  width: 72px;
+  min-height: 26px;
+  border: 1px solid rgb(126 88 210 / 40%);
+  border-radius: 4px;
+  background: #111424;
+  color: #ddd9ee;
+}
+
+.theme-editor input[type='color'] {
+  padding: 2px;
+}
+
+.theme-editor button {
+  width: 100%;
+  padding: 7px;
+}
+
+.theme-editor output {
+  color: #77798d;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
 .file-button {
   width: 100%;
   padding: 7px 9px;

@@ -1,4 +1,12 @@
 {
   "schemaVersion": 1,
-  "assets": []
+  "assets": [
+    {
+      "id": "icon.studio-mark",
+      "kind": "svgIcon",
+      "source": "assets/icons/studio-mark.svg",
+      "rasterSizesPx": [16, 24, 32],
+      "licenseFiles": ["assets/licenses/studio-mark.txt"]
+    }
+  ]
 }

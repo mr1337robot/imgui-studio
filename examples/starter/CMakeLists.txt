@@ -5,30 +5,24 @@ set(
     "Immutable starter project snapshot compiled by the local service"
 )
 
-add_library(
-    imgui_studio_starter
-    STATIC
-        "${IMGUI_STUDIO_STARTER_SOURCE_DIR}/src/menu.cpp"
+file(GLOB_RECURSE starter_source_files CONFIGURE_DEPENDS
+    "${IMGUI_STUDIO_STARTER_SOURCE_DIR}/src/*.cpp"
+    "${IMGUI_STUDIO_STARTER_SOURCE_DIR}/include/*.hpp"
 )
+list(SORT starter_source_files)
+
+add_library(imgui_studio_starter STATIC ${starter_source_files})
 add_library(ImGuiStudio::Starter ALIAS imgui_studio_starter)
 
 # Hash both public and private shared source at configure time. Embedding the combined digest in each
 # platform executable lets capture comparison prove that browser and native rendered identical code.
-file(
-    SHA256
-    "${IMGUI_STUDIO_STARTER_SOURCE_DIR}/src/menu.cpp"
-    starter_implementation_sha256
-)
-file(
-    SHA256
-    "${IMGUI_STUDIO_STARTER_SOURCE_DIR}/include/studio_example/menu.hpp"
-    starter_header_sha256
-)
-string(
-    SHA256
-    starter_source_sha256
-    "${starter_implementation_sha256}:${starter_header_sha256}"
-)
+set(starter_hash_input "")
+foreach(starter_source_file IN LISTS starter_source_files)
+    file(SHA256 "${starter_source_file}" starter_file_sha256)
+    file(RELATIVE_PATH starter_relative_path "${IMGUI_STUDIO_STARTER_SOURCE_DIR}" "${starter_source_file}")
+    string(APPEND starter_hash_input "${starter_relative_path}:${starter_file_sha256}\n")
+endforeach()
+string(SHA256 starter_source_sha256 "${starter_hash_input}")
 
 target_compile_features(imgui_studio_starter PUBLIC cxx_std_20)
 target_compile_definitions(

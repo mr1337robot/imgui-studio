@@ -479,4 +479,54 @@ std::span<const RuntimeDiagnostic> RuntimeDiagnostics() {
     return CurrentContext().Internal().diagnostics;
 }
 
+ImU32 MixColor(const ImU32 from, const ImU32 to, const float amount) noexcept {
+    const ImVec4 start = ImGui::ColorConvertU32ToFloat4(from);
+    const ImVec4 end = ImGui::ColorConvertU32ToFloat4(to);
+    const float t = std::clamp(amount, 0.0F, 1.0F);
+    return ImGui::ColorConvertFloat4ToU32(
+        {start.x + ((end.x - start.x) * t), start.y + ((end.y - start.y) * t),
+         start.z + ((end.z - start.z) * t), start.w + ((end.w - start.w) * t)});
+}
+
+void AddLinearGradient(ImDrawList& drawList, const Rect bounds, const ImU32 topLeft,
+                       const ImU32 topRight, const ImU32 bottomRight, const ImU32 bottomLeft,
+                       const float rounding) {
+    if (!bounds.IsFinite() || !bounds.HasPositiveArea())
+        return;
+    // Dear ImGui's multi-color primitive has no rounded-corner mode. The unrounded vertex gradient
+    // is still useful for canvas/card fills; rounded callers layer a translucent border above it.
+    drawList.AddRectFilledMultiColor(bounds.min, bounds.max, topLeft, topRight, bottomRight,
+                                     bottomLeft);
+    if (rounding > 0.0F) {
+        drawList.AddRect(bounds.min, bounds.max, IM_COL32(255, 255, 255, 18), rounding);
+    }
+}
+
+void AddLayeredShadow(ImDrawList& drawList, const Rect bounds, const ImU32 color,
+                      const float radius, const ImVec2 offset, const float rounding, int layers) {
+    if (!bounds.IsFinite() || !bounds.HasPositiveArea() || !std::isfinite(radius) || radius <= 0.0F)
+        return;
+    layers = std::clamp(layers, 1, 16);
+    for (int layer = layers; layer >= 1; --layer) {
+        const float fraction = static_cast<float>(layer) / static_cast<float>(layers);
+        const float expansion = radius * fraction;
+        ImVec4 alpha = ImGui::ColorConvertU32ToFloat4(color);
+        alpha.w *= (1.0F - fraction + (1.0F / static_cast<float>(layers))) * 0.14F;
+        drawList.AddRectFilled(
+            {bounds.min.x + offset.x - expansion, bounds.min.y + offset.y - expansion},
+            {bounds.max.x + offset.x + expansion, bounds.max.y + offset.y + expansion},
+            ImGui::ColorConvertFloat4ToU32(alpha), rounding + expansion);
+    }
+}
+
+void AddGlow(ImDrawList& drawList, const Rect bounds, const ImU32 color, const float radius,
+             const float rounding, int layers) {
+    AddLayeredShadow(drawList, bounds, color, radius, {0.0F, 0.0F}, rounding, layers);
+}
+
+ImVec2 CenterTextX(const Rect bounds, const std::string_view text) noexcept {
+    const ImVec2 size = ImGui::CalcTextSize(text.data(), text.data() + text.size());
+    return {bounds.Center().x - (size.x * 0.5F), bounds.Center().y - (size.y * 0.5F)};
+}
+
 } // namespace studio

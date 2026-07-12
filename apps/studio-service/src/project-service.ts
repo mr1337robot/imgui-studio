@@ -12,6 +12,7 @@ import {
   writeAtomic,
 } from './filesystem.ts';
 import { ServiceError } from './service-error.ts';
+import { AssetManifestValidator } from './asset-manifest-validator.ts';
 import type {
   PatchResult,
   PreviewIdentity,
@@ -41,6 +42,7 @@ interface PersistedProjectState {
 export class ProjectService {
   readonly #serial = new SerialQueue();
   readonly #manifestValidator: ValidateFunction;
+  readonly #assetValidator: AssetManifestValidator;
   #state!: PersistedProjectState;
   #manifest!: Record<string, unknown>;
 
@@ -48,8 +50,10 @@ export class ProjectService {
     public readonly projectId: string,
     public readonly root: string,
     manifestValidator: ValidateFunction,
+    assetValidator: AssetManifestValidator,
   ) {
     this.#manifestValidator = manifestValidator;
+    this.#assetValidator = assetValidator;
   }
 
   /** Opens and validates a project root without mutating canonical project content. */
@@ -63,8 +67,14 @@ export class ProjectService {
       strict: true,
       validateFormats: false,
     }).compile(schema);
-    const project = new ProjectService(`prj_${randomUUID()}`, canonicalRoot, validator);
+    const project = new ProjectService(
+      `prj_${randomUUID()}`,
+      canonicalRoot,
+      validator,
+      await AssetManifestValidator.create(repositoryRoot),
+    );
     await project.#loadAndValidateManifest();
+    await project.#assetValidator.validate(canonicalRoot, String(project.#manifest.assetsManifest));
     await project.#loadState();
     await project.listFiles();
     return project;
@@ -249,6 +259,17 @@ export class ProjectService {
 
   public get manifest(): Readonly<Record<string, unknown>> {
     return this.#manifest;
+  }
+
+  /**
+   * Revalidates the currently committed asset graph before a build snapshot is created.
+   *
+   * File patches may intentionally create an incomplete asset set across several revisions. The
+   * service preserves those user-authored edits, while the immutable-build boundary fails closed
+   * until the manifest and every declared source/license file are valid together.
+   */
+  public async validateAssets(): Promise<void> {
+    await this.#assetValidator.validate(this.root, String(this.#manifest.assetsManifest));
   }
 
   async #loadAndValidateManifest(): Promise<void> {

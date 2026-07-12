@@ -29,6 +29,11 @@ const elements = Object.fromEntries(
     'seek-button',
     'inspect-button',
     'inspection-overlay',
+    'theme-editor',
+    'theme-accent',
+    'theme-duration',
+    'theme-apply',
+    'theme-status',
   ].map((id) => [id, document.getElementById(id)]),
 );
 
@@ -36,9 +41,17 @@ let project;
 let activeFile;
 let editor;
 let suppressEditorChange = false;
+let managedTheme;
 
 await authorizePreviewOrigin();
 await initializeProject();
+
+elements['theme-apply'].addEventListener('click', () => void applyManagedTheme());
+for (const input of [elements['theme-accent'], elements['theme-duration']]) {
+  input.addEventListener('input', () => {
+    elements['theme-apply'].disabled = managedTheme === undefined;
+  });
+}
 
 let lastPreviewTimeUs = 0;
 let lastToggleBounds = null;
@@ -111,9 +124,125 @@ async function initializeProject() {
   renderProjectState();
   renderProjectTree();
   await initializeMonaco();
+  await initializeManagedThemeEditor();
   const preferred = project.files.find((file) => file.path === 'src/menu.cpp') ?? project.files[0];
   if (preferred) await openFile(preferred.path);
   if (project.currentPreview) await loadPreview(project.currentPreview);
+}
+
+/**
+ * Loads the explicit Studio-managed token file into a deliberately small property editor.
+ *
+ * The editor is intentionally not a general C++ parser or a replacement for Monaco. It recognizes
+ * only the two stable starter token expressions below and writes only the manifest-declared managed
+ * source file through the normal revision/preimage patch protocol.
+ */
+async function initializeManagedThemeEditor() {
+  const path = 'src/studio_managed_theme.cpp';
+  if (!project.files.some((file) => file.path === path)) return;
+  const response = await api(`/api/v1/projects/${project.projectId}/files:read`, {
+    method: 'POST',
+    body: { paths: [path], expectedRevision: project.currentRevision, includeContent: true },
+  });
+  const file = response.files[0];
+  const tokens = parseManagedTheme(file.content);
+  if (!tokens) return;
+  managedTheme = { ...file, ...tokens };
+  elements['theme-accent'].value = tokens.accentHex;
+  elements['theme-duration'].value = String(tokens.durationSeconds);
+  elements['theme-editor'].hidden = false;
+  elements['theme-apply'].disabled = false;
+  elements['theme-status'].textContent = 'Edits only src/studio_managed_theme.cpp.';
+}
+
+function parseManagedTheme(content) {
+  const accent = /\.accent\s*=\s*IM_COL32\((\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)/.exec(content);
+  const duration = /\.animationDurationSeconds\s*=\s*([0-9]+(?:\.[0-9]+)?)F/.exec(content);
+  if (!accent || !duration) return null;
+  const channels = accent.slice(1, 5).map(Number);
+  if (channels.some((channel) => !Number.isInteger(channel) || channel < 0 || channel > 255))
+    return null;
+  const durationSeconds = Number(duration[1]);
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 0 || durationSeconds > 2) return null;
+  return {
+    accentHex: `#${channels
+      .slice(0, 3)
+      .map((channel) => channel.toString(16).padStart(2, '0'))
+      .join('')}`,
+    durationSeconds,
+  };
+}
+
+async function applyManagedTheme() {
+  if (!managedTheme) return;
+  const durationSeconds = Number(elements['theme-duration'].value);
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 0 || durationSeconds > 2) {
+    elements['theme-status'].textContent = 'Motion must be a finite value from 0 to 2 seconds.';
+    return;
+  }
+  const [red, green, blue] = hexChannels(elements['theme-accent'].value);
+  const next = managedTheme.content
+    .replace(
+      /(\.accent\s*=\s*)IM_COL32\([^)]*\)(,)/,
+      `$1IM_COL32(${red}, ${green}, ${blue}, 255)$2`,
+    )
+    .replace(
+      /(\.animationDurationSeconds\s*=\s*)[0-9]+(?:\.[0-9]+)?F(,)/,
+      `$1${durationSeconds.toFixed(2)}F$2`,
+    );
+  if (next === managedTheme.content) {
+    elements['theme-status'].textContent = 'Managed theme tokens could not be located safely.';
+    return;
+  }
+  setBusy(true);
+  try {
+    const result = await api(`/api/v1/projects/${project.projectId}/files:patch`, {
+      method: 'POST',
+      mutation: true,
+      body: {
+        expectedRevision: project.currentRevision,
+        patches: [
+          {
+            path: managedTheme.path,
+            expectedSha256: managedTheme.sha256,
+            unifiedDiff: createMinimalUnifiedDiff(managedTheme.content, next, managedTheme.path),
+          },
+        ],
+        reason: 'Managed theme token edit',
+      },
+    });
+    project.currentRevision = result.revision;
+    managedTheme = {
+      ...managedTheme,
+      content: next,
+      sha256: result.postimageSha256[managedTheme.path],
+      revision: result.revision,
+    };
+    if (activeFile?.path === managedTheme.path) {
+      activeFile = { ...managedTheme };
+      suppressEditorChange = true;
+      editor.setValue(next);
+      suppressEditorChange = false;
+      elements['editor-state'].textContent = 'Clean';
+    }
+    elements['theme-status'].textContent = 'Theme updated. Build preview to promote it.';
+    renderProjectState();
+  } catch (error) {
+    elements['theme-status'].textContent =
+      error instanceof Error ? error.message : 'Theme update failed.';
+  } finally {
+    setBusy(false);
+  }
+}
+
+function hexChannels(value) {
+  const match = /^#([0-9a-f]{6})$/i.exec(value);
+  if (!match) throw new Error('Theme accent must be an RGB color.');
+  return [
+    Number.parseInt(match[1].slice(0, 2), 16),
+    Number.parseInt(match[1].slice(2, 4), 16),
+    Number.parseInt(match[1].slice(4, 6), 16),
+  ];
 }
 
 async function initializeMonaco() {
@@ -288,7 +417,7 @@ function renderBuild(build) {
   );
 }
 
-function createMinimalUnifiedDiff(before, after) {
+function createMinimalUnifiedDiff(before, after, path = activeFile?.path ?? 'unknown') {
   const oldLines = logicalLines(before);
   const newLines = logicalLines(after);
   let prefix = 0;
@@ -319,7 +448,7 @@ function createMinimalUnifiedDiff(before, after) {
     ...newLines.slice(prefix, newChangeEnd).map((line) => `+${line}`),
     ...oldLines.slice(oldChangeEnd, oldEnd).map((line) => ` ${line}`),
   ];
-  return `--- a/${activeFile.path}\n+++ b/${activeFile.path}\n@@ -${contextStart + 1},${oldCount} +${contextStart + 1},${newCount} @@\n${body.join('\n')}\n`;
+  return `--- a/${path}\n+++ b/${path}\n@@ -${contextStart + 1},${oldCount} +${contextStart + 1},${newCount} @@\n${body.join('\n')}\n`;
 }
 
 function logicalLines(content) {

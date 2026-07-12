@@ -29,25 +29,33 @@ afterEach(async () => {
 
 describe('canonical project revisions', () => {
   it('advances exactly once for a valid patch and persists the revision', async () => {
-    const file = required((await project.readFiles(['src/menu.cpp'], '0'))[0]);
-    const patch = replacementPatch(file.content, 'duration = 0.22', 'duration = 0.24');
+    const file = required((await project.readFiles(['src/studio_managed_theme.cpp'], '0'))[0]);
+    const patch = replacementPatch(
+      file.content,
+      'animationDurationSeconds = 0.22F',
+      'animationDurationSeconds = 0.24F',
+    );
     const result = await project.applyPatches('0', [
       { path: file.path, expectedSha256: file.sha256, unifiedDiff: patch },
     ]);
 
     expect(result.previousRevision).toBe('0');
     expect(result.revision).toBe('1');
-    expect(required((await project.readFiles(['src/menu.cpp'], '1'))[0]).content).toContain(
-      'duration = 0.24',
-    );
+    expect(
+      required((await project.readFiles(['src/studio_managed_theme.cpp'], '1'))[0]).content,
+    ).toContain('animationDurationSeconds = 0.24F');
     expect((await ProjectService.open(projectRoot, repositoryRoot)).currentRevision).toBe('1');
   });
 
   it('rejects stale revisions and stale preimage digests without changing bytes', async () => {
-    const path = resolve(projectRoot, 'src/menu.cpp');
+    const path = resolve(projectRoot, 'src/studio_managed_theme.cpp');
     const before = await readFile(path);
-    const file = required((await project.readFiles(['src/menu.cpp']))[0]);
-    const patch = replacementPatch(file.content, 'duration = 0.22', 'duration = 0.24');
+    const file = required((await project.readFiles(['src/studio_managed_theme.cpp']))[0]);
+    const patch = replacementPatch(
+      file.content,
+      'animationDurationSeconds = 0.22F',
+      'animationDurationSeconds = 0.24F',
+    );
 
     await expect(
       project.applyPatches('9', [
@@ -64,19 +72,27 @@ describe('canonical project revisions', () => {
   });
 
   it('serializes simultaneous mutations so only one stale caller succeeds', async () => {
-    const file = required((await project.readFiles(['src/menu.cpp']))[0]);
+    const file = required((await project.readFiles(['src/studio_managed_theme.cpp']))[0]);
     const first = project.applyPatches('0', [
       {
         path: file.path,
         expectedSha256: file.sha256,
-        unifiedDiff: replacementPatch(file.content, 'duration = 0.22', 'duration = 0.24'),
+        unifiedDiff: replacementPatch(
+          file.content,
+          'animationDurationSeconds = 0.22F',
+          'animationDurationSeconds = 0.24F',
+        ),
       },
     ]);
     const second = project.applyPatches('0', [
       {
         path: file.path,
         expectedSha256: file.sha256,
-        unifiedDiff: replacementPatch(file.content, 'duration = 0.22', 'duration = 0.26'),
+        unifiedDiff: replacementPatch(
+          file.content,
+          'animationDurationSeconds = 0.22F',
+          'animationDurationSeconds = 0.26F',
+        ),
       },
     ]);
     const outcomes = await Promise.allSettled([first, second]);
@@ -111,6 +127,34 @@ describe('project path and encoding boundaries', () => {
     await writeFile(resolve(projectRoot, 'src/invalid.cpp'), Buffer.from([0xc3, 0x28]));
     await expect(project.readFiles(['src/invalid.cpp'])).rejects.toMatchObject({
       code: 'INVALID_REQUEST',
+    });
+  });
+});
+
+describe('portable asset boundaries', () => {
+  it('accepts the checked-in licensed starter SVG during project discovery', async () => {
+    await expect(project.validateAssets()).resolves.toBeUndefined();
+  });
+
+  it('rejects active SVG content before a build snapshot is created', async () => {
+    await writeFile(
+      resolve(projectRoot, 'assets/icons/studio-mark.svg'),
+      '<svg><script>alert(1)</script></svg>',
+      'utf8',
+    );
+
+    await expect(project.validateAssets()).rejects.toMatchObject({
+      code: 'ASSET_INVALID',
+      details: { assetId: 'icon.studio-mark', path: 'assets/icons/studio-mark.svg' },
+    });
+  });
+
+  it('rejects a missing required attribution file with only its logical path exposed', async () => {
+    await rm(resolve(projectRoot, 'assets/licenses/studio-mark.txt'));
+
+    await expect(project.validateAssets()).rejects.toMatchObject({
+      code: 'ASSET_INVALID',
+      details: { path: 'assets/licenses/studio-mark.txt' },
     });
   });
 });

@@ -559,7 +559,6 @@ Helpers produce ordinary `ImDrawList` commands and are optional:
 namespace studio {
 
 [[nodiscard]] ImU32 MixColor(ImU32 a, ImU32 b, float t) noexcept;
-[[nodiscard]] ImVec4 MixColor(ImVec4 a, ImVec4 b, float t) noexcept;
 
 void AddLinearGradient(ImDrawList&, Rect, ImU32 topLeft, ImU32 topRight,
                        ImU32 bottomRight, ImU32 bottomLeft,
@@ -569,10 +568,18 @@ void AddLayeredShadow(ImDrawList&, Rect, ImU32 color, float blurRadius,
 void AddGlow(ImDrawList&, Rect, ImU32 color, float radius,
              float rounding, int layers = 6);
 
+[[nodiscard]] ImVec2 CenterTextX(Rect, std::string_view text) noexcept;
+
 } // namespace studio
 ```
 
-These are portable approximations, not renderer blur/bloom. Invalid layer counts or geometry produce no draw commands and a diagnostic in debug/inspection builds. Color interpolation is component-wise in the numeric ImGui color space; it does not silently perform gamma conversion.
+These are portable approximations, not renderer blur/bloom. Invalid or non-positive geometry and
+radii produce no draw commands. Shadow and glow layer counts are clamped to `[1, 16]` so their
+frame cost remains bounded. `AddLinearGradient` uses Dear ImGui's four-corner vertex gradient;
+rounded callers may layer their own border/fill because the underlying primitive has no rounded
+gradient mode. `CenterTextX` queries the current ImGui font and returns a horizontal center
+position; it retains no font pointer. Color interpolation is component-wise in the numeric ImGui
+color space; it does not silently perform gamma conversion.
 
 ## 12. Error and diagnostic behavior
 
