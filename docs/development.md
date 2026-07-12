@@ -81,6 +81,7 @@ directories. Do not update a visual expectation without reviewing its diff and p
 ```powershell
 . .\.tools\emsdk\emsdk_env.ps1
 npm run studio
+npm run agent-adapter
 ```
 
 The service snapshots canonical inputs under `.studio/builds/<buildId>/snapshot`, copies the selected

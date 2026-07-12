@@ -1,6 +1,6 @@
 # Studio Web Application
 
-The Phase 2 client provides a project tree, local Monaco C++ editor, revision/status controls,
+The client provides a project tree, local Monaco C++ editor, revision/status controls,
 structured compiler diagnostics, cache timing, and the real WASM preview. The local service remains
 authoritative for every file, revision, build, artifact, and preview identity.
 
@@ -11,6 +11,10 @@ and marks it stale.
 
 Monaco is pinned and served locally, with no CDN or runtime network dependency. Preview artifacts run
 on the separate authenticated `127.0.0.1:4174` origin.
+
+Phase 4 adds deterministic timeline controls and a non-canonical inspection overlay for the stable
+`settings.enable` bounds. The overlay sits in the parent UI, consumes no preview input, and never
+changes canonical framebuffer pixels.
 
 Run the application with `npm run studio` after loading Emscripten. Run its browser journey with
 `npm run test:studio`.

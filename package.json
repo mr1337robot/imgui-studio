@@ -12,6 +12,7 @@
   "packageManager": "npm@11.6.2",
   "scripts": {
     "build": "npm run schemas:generate && npm run typecheck",
+    "agent-adapter": "tsx apps/agent-adapter/src/main.ts",
     "compare:captures": "node scripts/compare-captures.mjs",
     "clean": "node scripts/clean.mjs",
     "format": "prettier --write .",

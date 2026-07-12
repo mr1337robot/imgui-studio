@@ -5,6 +5,8 @@ import { extname, resolve, sep } from 'node:path';
 import { chromium } from 'playwright';
 import { WebSocket, WebSocketServer } from 'ws';
 import { BuildCoordinator } from './build-coordinator.ts';
+import { ComparisonService, type ComparisonTransform } from './comparison-service.ts';
+import { PreviewCoordinator } from './preview-coordinator.ts';
 import type { ProjectService } from './project-service.ts';
 import { asServiceError, ServiceError } from './service-error.ts';
 import type { BuildRecord, SourcePatch } from './types.ts';
@@ -28,6 +30,8 @@ export class StudioHttpServer {
   readonly #webSockets = new WebSocketServer({ noServer: true });
   readonly #idempotency = new Map<string, { bodySha256: string; response: unknown }>();
   readonly #builds: BuildCoordinator;
+  readonly #previews: PreviewCoordinator;
+  readonly #comparisons: ComparisonService;
   readonly #studioPort: number;
   readonly #previewPort: number;
   readonly #studioOrigin: string;
@@ -51,6 +55,14 @@ export class StudioHttpServer {
       this.#studioOrigin,
       this.#previewOrigin,
     );
+    this.#previews = new PreviewCoordinator(
+      project,
+      this.#builds,
+      this.#previewOrigin,
+      this.#studioOrigin,
+      this.#token,
+    );
+    this.#comparisons = new ComparisonService(project, this.#previews);
     this.#studioServer.on('upgrade', (request, socket, head) => {
       const upgradeUrl = new URL(request.url ?? '/', this.#studioOrigin);
       if (
@@ -82,6 +94,7 @@ export class StudioHttpServer {
   /** Stops accepting work, closes sockets, and waits for both listener lifecycles. */
   public async close(): Promise<void> {
     for (const client of this.#webSockets.clients) client.close(1001, 'Service shutdown');
+    await this.#previews.close();
     await Promise.all([close(this.#studioServer), close(this.#previewServer)]);
   }
 
@@ -179,6 +192,248 @@ export class StudioHttpServer {
         };
       });
       this.#json(response, 202, result);
+      return;
+    }
+    if (url.pathname === `${projectPrefix}/previews` && method === 'POST') {
+      this.#requireMutation(request);
+      const body = await readJsonBody(request);
+      const result = await this.#idempotent(request, body, async () => {
+        const values = requireObject(body);
+        assertAllowedKeys(values, ['buildId', 'mode', 'strictCurrentRevision', 'viewport']);
+        if (typeof values.buildId !== 'string' || values.mode !== 'deterministic') {
+          throw invalidRequest('A buildId and deterministic mode are required.');
+        }
+        const frame = await this.#previews.load(
+          values.buildId,
+          values.strictCurrentRevision === true,
+        );
+        this.#emit('preview.changed', { identity: frame.identity });
+        return { frame };
+      });
+      this.#json(response, 201, result);
+      return;
+    }
+    if (url.pathname === `${projectPrefix}/references:import` && method === 'POST') {
+      this.#requireMutation(request);
+      const body = await readJsonBody(request);
+      const result = await this.#idempotent(request, body, async () => {
+        const values = requireObject(body);
+        assertAllowedKeys(values, [
+          'expectedRevision',
+          'referenceId',
+          'mediaType',
+          'contentBase64',
+        ]);
+        const snapshot = await this.project.getSnapshot();
+        if (values.expectedRevision !== snapshot.currentRevision) {
+          throw new ServiceError(
+            'REVISION_CONFLICT',
+            'The reference import revision is stale.',
+            409,
+            true,
+          );
+        }
+        if (typeof values.referenceId !== 'string' || typeof values.contentBase64 !== 'string') {
+          throw invalidRequest('referenceId and contentBase64 are required.');
+        }
+        const bytes = decodeBase64(values.contentBase64);
+        return {
+          reference: await this.#comparisons.importReference(
+            values.referenceId,
+            values.mediaType,
+            bytes,
+          ),
+          projectRevision: snapshot.currentRevision,
+        };
+      });
+      this.#json(response, 201, result);
+      return;
+    }
+    if (url.pathname === `${projectPrefix}/comparisons` && method === 'POST') {
+      this.#requireMutation(request);
+      const body = await readJsonBody(request);
+      const result = await this.#idempotent(request, body, async () => {
+        const values = requireObject(body);
+        assertAllowedKeys(values, ['captureArtifactId', 'referenceId', 'mode', 'transform']);
+        if (
+          typeof values.captureArtifactId !== 'string' ||
+          typeof values.referenceId !== 'string' ||
+          !['sideBySide', 'alphaOverlay', 'absoluteDifference', 'edgeDifference'].includes(
+            String(values.mode),
+          )
+        ) {
+          throw invalidRequest('Comparison identity or mode is invalid.');
+        }
+        return {
+          comparison: await this.#comparisons.compare(
+            values.captureArtifactId,
+            values.referenceId,
+            values.mode as 'sideBySide' | 'alphaOverlay' | 'absoluteDifference' | 'edgeDifference',
+            parseComparisonTransform(values.transform),
+          ),
+        };
+      });
+      this.#emit('comparison.changed', result);
+      this.#json(response, 201, result);
+      return;
+    }
+    const resetPreview = /^\/api\/v1\/previews\/([^/:]+):reset$/.exec(url.pathname);
+    if (resetPreview && method === 'POST') {
+      this.#requireMutation(request);
+      const previewInstanceId = resetPreview[1];
+      if (previewInstanceId === undefined) throw invalidRequest('Preview ID is required.');
+      const body = requireObject(await readJsonBody(request));
+      assertAllowedKeys(body, ['expected', 'resetKind', 'timeUs']);
+      if (body.resetKind !== 'clean' || body.timeUs !== 0) {
+        throw invalidRequest('Only clean reset at timeUs 0 is supported.');
+      }
+      this.#json(response, 200, {
+        frame: await this.#previews.reset(
+          previewInstanceId,
+          validateExpectedIdentity(body.expected, false),
+        ),
+      });
+      return;
+    }
+    const renderPreview = /^\/api\/v1\/previews\/([^/:]+)\/frames$/.exec(url.pathname);
+    if (renderPreview && method === 'POST') {
+      this.#requireMutation(request);
+      const previewInstanceId = renderPreview[1];
+      if (previewInstanceId === undefined) throw invalidRequest('Preview ID is required.');
+      const body = requireObject(await readJsonBody(request));
+      assertAllowedKeys(body, [
+        'expected',
+        'timeUs',
+        'capturePixels',
+        'includeInspection',
+        'overlay',
+      ]);
+      this.#json(response, 200, {
+        frame: await this.#previews.render(
+          previewInstanceId,
+          validateExpectedIdentity(body.expected, false),
+          requireNonNegativeInteger(body.timeUs, 'timeUs'),
+          body.capturePixels === true,
+        ),
+      });
+      return;
+    }
+    const actPreview = /^\/api\/v1\/previews\/([^/:]+)\/actions$/.exec(url.pathname);
+    if (actPreview && method === 'POST') {
+      this.#requireMutation(request);
+      const previewInstanceId = actPreview[1];
+      if (previewInstanceId === undefined) throw invalidRequest('Preview ID is required.');
+      const body = requireObject(await readJsonBody(request));
+      assertAllowedKeys(body, [
+        'expected',
+        'atUs',
+        'sequence',
+        'action',
+        'target',
+        'button',
+        'renderAfter',
+        'capturePixels',
+      ]);
+      const target = requireObject(body.target);
+      assertAllowedKeys(target, ['widgetId']);
+      if (
+        body.action !== 'click' ||
+        target.widgetId !== 'settings.enable' ||
+        body.button !== 'left' ||
+        body.renderAfter !== true
+      ) {
+        throw invalidRequest(
+          'The Phase 4 vertical slice supports a left click on settings.enable.',
+        );
+      }
+      this.#json(response, 200, {
+        frame: await this.#previews.click(
+          previewInstanceId,
+          validateExpectedIdentity(body.expected, true),
+          requireNonNegativeInteger(body.atUs, 'atUs'),
+          body.capturePixels === true,
+        ),
+      });
+      return;
+    }
+    const inspectPreview = /^\/api\/v1\/previews\/([^/:]+)\/inspection:query$/.exec(url.pathname);
+    if (inspectPreview && method === 'POST') {
+      const previewInstanceId = inspectPreview[1];
+      if (previewInstanceId === undefined) throw invalidRequest('Preview ID is required.');
+      const body = requireObject(await readJsonBody(request));
+      assertAllowedKeys(body, ['expected', 'filter']);
+      const filter = requireObject(body.filter);
+      assertAllowedKeys(filter, [
+        'widgetIds',
+        'idPrefix',
+        'types',
+        'includeValues',
+        'includeAnimations',
+        'includeDiagnostics',
+        'maxDepth',
+        'allowMissing',
+      ]);
+      this.#json(response, 200, {
+        frame: this.#previews.inspect(
+          previewInstanceId,
+          validateExpectedIdentity(body.expected, true),
+        ),
+      });
+      return;
+    }
+    const capturePreview = /^\/api\/v1\/previews\/([^/:]+)\/captures$/.exec(url.pathname);
+    if (capturePreview && method === 'POST') {
+      this.#requireMutation(request);
+      const previewInstanceId = capturePreview[1];
+      if (previewInstanceId === undefined) throw invalidRequest('Preview ID is required.');
+      const body = requireObject(await readJsonBody(request));
+      assertAllowedKeys(body, [
+        'expected',
+        'scenario',
+        'includeFrames',
+        'includeInspection',
+        'includeNormalizedTrace',
+      ]);
+      const selector = requireObject(body.scenario);
+      assertAllowedKeys(selector, ['path', 'document']);
+      let scenarioDocument = selector.document;
+      if (typeof selector.path === 'string') {
+        if (scenarioDocument !== undefined)
+          throw invalidRequest('Specify scenario path or document, not both.');
+        const files = await this.project.readFiles([selector.path], undefined, 262_144);
+        const file = files[0];
+        if (file === undefined || !('content' in file) || typeof file.content !== 'string') {
+          throw invalidRequest('Scenario file is not UTF-8 text.');
+        }
+        try {
+          scenarioDocument = JSON.parse(file.content) as unknown;
+        } catch {
+          throw new ServiceError('SCENARIO_INVALID', 'Scenario JSON is malformed.', 400, false);
+        }
+      }
+      this.#json(response, 200, {
+        capture: await this.#previews.capture(
+          previewInstanceId,
+          validateExpectedIdentity(body.expected, false),
+          parseCaptureScenario(scenarioDocument),
+        ),
+      });
+      return;
+    }
+    const artifactMatch = /^\/api\/v1\/artifacts\/([^/:]+)$/.exec(url.pathname);
+    if (artifactMatch && method === 'GET') {
+      if (!this.#authorized(request)) {
+        throw new ServiceError('UNAUTHORIZED', 'Artifact authentication is required.', 401, false);
+      }
+      const artifactId = artifactMatch[1];
+      if (artifactId === undefined) throw invalidRequest('Artifact ID is required.');
+      const bytes = await this.#previews.readArtifact(artifactId);
+      response.writeHead(200, {
+        'Cache-Control': 'no-store',
+        'Content-Type': 'image/png',
+        'X-Content-Type-Options': 'nosniff',
+      });
+      response.end(bytes);
       return;
     }
     const buildMatch = new RegExp(
@@ -547,6 +802,96 @@ function requireInteger(value: unknown): number {
   if (!Number.isSafeInteger(value) || (value as number) <= 0)
     throw invalidRequest('The byte limit must be a positive integer.');
   return value as number;
+}
+
+function requireNonNegativeInteger(value: unknown, field: string): number {
+  if (!Number.isSafeInteger(value) || (value as number) < 0) {
+    throw invalidRequest(`${field} must be a non-negative safe integer.`);
+  }
+  return value as number;
+}
+
+function decodeBase64(value: string): Buffer {
+  if (value.length === 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value)) {
+    throw invalidRequest('contentBase64 is malformed.');
+  }
+  return Buffer.from(value, 'base64');
+}
+
+function parseComparisonTransform(value: unknown): ComparisonTransform {
+  const transform = requireObject(value);
+  assertAllowedKeys(transform, [
+    'translateMicroPx',
+    'scaleMillionths',
+    'cropPx',
+    'opacityMillionths',
+  ]);
+  return {
+    translateMicroPx: transform.translateMicroPx as readonly [number, number],
+    scaleMillionths: transform.scaleMillionths as number,
+    cropPx: transform.cropPx as readonly [number, number, number, number] | null,
+    opacityMillionths: transform.opacityMillionths as number,
+  };
+}
+
+function parseCaptureScenario(value: unknown): {
+  id: string;
+  steps: { sequence: number; atUs: number; action: string; target?: { widgetId?: string } }[];
+  capture: { startUs: number; endUs: number; fps: number };
+} {
+  const scenario = requireObject(value);
+  const capture = requireObject(scenario.capture);
+  if (typeof scenario.id !== 'string' || !Array.isArray(scenario.steps)) {
+    throw new ServiceError('SCENARIO_INVALID', 'Scenario id and steps are required.', 400, false);
+  }
+  const steps = scenario.steps.map((entry) => {
+    const step = requireObject(entry);
+    const target = step.target === undefined ? undefined : requireObject(step.target);
+    if (
+      !Number.isSafeInteger(step.sequence) ||
+      !Number.isSafeInteger(step.atUs) ||
+      typeof step.action !== 'string'
+    ) {
+      throw new ServiceError('SCENARIO_INVALID', 'Scenario step is malformed.', 400, false);
+    }
+    return {
+      sequence: step.sequence as number,
+      atUs: step.atUs as number,
+      action: step.action,
+      ...(target === undefined
+        ? {}
+        : {
+            target: {
+              ...(typeof target.widgetId === 'string' ? { widgetId: target.widgetId } : {}),
+            },
+          }),
+    };
+  });
+  return {
+    id: scenario.id,
+    steps,
+    capture: {
+      startUs: capture.startUs as number,
+      endUs: capture.endUs as number,
+      fps: capture.fps as number,
+    },
+  };
+}
+
+function validateExpectedIdentity(value: unknown, requireFrame: boolean): Record<string, unknown> {
+  const expected = requireObject(value);
+  assertAllowedKeys(
+    expected,
+    requireFrame ? ['buildId', 'projectRevision', 'frameId'] : ['buildId', 'projectRevision'],
+  );
+  if (
+    typeof expected.buildId !== 'string' ||
+    typeof expected.projectRevision !== 'string' ||
+    (requireFrame && typeof expected.frameId !== 'string')
+  ) {
+    throw invalidRequest('Expected build, revision, and frame identity is malformed.');
+  }
+  return expected;
 }
 
 function parseSourcePatches(values: readonly unknown[]): SourcePatch[] {

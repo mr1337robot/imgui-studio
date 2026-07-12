@@ -64,6 +64,7 @@
                 >Time µs <input id="seek-input" type="number" min="0" step="16667" value="0"
               /></label>
               <button id="seek-button" type="button">Seek</button>
+              <button id="inspect-button" type="button" aria-pressed="false">Inspect bounds</button>
             </div>
             <output id="geometry-value">Waiting for preview</output>
           </div>
@@ -76,6 +77,9 @@
               width="900"
               height="600"
             ></iframe>
+            <div id="inspection-overlay" class="inspection-overlay" hidden>
+              <span>settings.enable</span>
+            </div>
             <div id="preview-empty" class="preview-empty">
               <strong>No successful build yet</strong>
               <span>Build the project to load the first immutable preview.</span>

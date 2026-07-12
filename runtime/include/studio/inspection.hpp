@@ -20,6 +20,8 @@ struct InspectedWidget {
     Rect bounds{};
     Rect hitbox{};
     Interaction interaction{};
+    /// True when overlap analysis should treat this hitbox as intentionally layered.
+    bool allowsOverlap{};
     bool boolValue{};
     std::vector<InspectedAnimation> animations;
 };

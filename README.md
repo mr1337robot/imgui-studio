@@ -9,12 +9,12 @@ in native exports. HTML or JSON widget recreations are not the source of truth.
 
 ## Status
 
-Phase 3 is complete. The repository includes the authenticated local project service, Monaco C++
+Phase 4 is complete. The repository includes the authenticated local project service, Monaco C++
 editor, atomic revision-safe patches, incremental/cancellable Emscripten builds, structured compiler
 diagnostics, immutable artifacts, smoke-gated preview replacement, and last-known-good preview
 retention. The shared C++ runtime now adds deterministic microsecond time, resettable tween/spring
 state, stable custom-widget interaction, timeline controls, and repeatable filmstrip traces. See
-[docs/phase-3-completion.md](docs/phase-3-completion.md) for evidence.
+[docs/phase-4-completion.md](docs/phase-4-completion.md) for evidence.
 
 ## Prerequisites
 

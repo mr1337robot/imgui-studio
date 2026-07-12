@@ -234,6 +234,28 @@ iframe {
   background: #080b16;
 }
 
+.inspection-overlay {
+  position: absolute;
+  z-index: 3;
+  box-sizing: border-box;
+  border: 1px solid #ff45ef;
+  background: rgb(255 69 239 / 8%);
+  pointer-events: none;
+}
+
+.inspection-overlay span {
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: -1px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: #ff45ef;
+  color: #130d1c;
+  font:
+    10px/1.3 ui-monospace,
+    monospace;
+}
+
 .preview-empty {
   position: absolute;
   inset: 0;

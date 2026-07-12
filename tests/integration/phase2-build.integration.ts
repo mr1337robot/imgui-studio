@@ -7,6 +7,7 @@ import type {
   BuildRecord,
   ProjectFile,
   ProjectSnapshot,
+  StoredFrame,
 } from '../../apps/studio-service/src/types.ts';
 
 const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
@@ -114,6 +115,160 @@ try {
     'Successful replacement reused the previous preview instance.',
   );
 
+  // Phase 4 exercises only documented HTTP tools after the build. Exact frame identity, stable
+  // targeting, inspection, deterministic time, and artifact authentication all cross the real
+  // service/Chromium boundary here.
+  const loaded = await request<{ frame: StoredFrame }>(
+    `/api/v1/projects/${project.projectId}/previews`,
+    {
+      method: 'POST',
+      mutation: true,
+      body: {
+        buildId: replacementBuild.buildId,
+        mode: 'deterministic',
+        strictCurrentRevision: true,
+        viewport: { widthPx: 900, heightPx: 600, dpiScaleMilli: 1000 },
+      },
+    },
+  );
+  const previewIdentity = loaded.frame.identity;
+  const expectedPreview = {
+    buildId: previewIdentity.buildId,
+    projectRevision: previewIdentity.projectRevision,
+  };
+  const reset = await request<{ frame: StoredFrame }>(
+    `/api/v1/previews/${previewIdentity.previewInstanceId}:reset`,
+    {
+      method: 'POST',
+      mutation: true,
+      body: { expected: expectedPreview, resetKind: 'clean', timeUs: 0 },
+    },
+  );
+  const inspected = await request<{ frame: StoredFrame }>(
+    `/api/v1/previews/${previewIdentity.previewInstanceId}/inspection:query`,
+    {
+      method: 'POST',
+      body: {
+        expected: { ...expectedPreview, frameId: reset.frame.identity.frameId },
+        filter: {
+          widgetIds: ['settings.enable'],
+          includeValues: true,
+          includeAnimations: true,
+          includeDiagnostics: true,
+          allowMissing: false,
+        },
+      },
+    },
+  );
+  assert(
+    inspected.frame.widgets[0]?.widgetId === 'settings.enable',
+    'Stable widget inspection target was absent.',
+  );
+  const acted = await request<{ frame: StoredFrame }>(
+    `/api/v1/previews/${previewIdentity.previewInstanceId}/actions`,
+    {
+      method: 'POST',
+      mutation: true,
+      body: {
+        expected: { ...expectedPreview, frameId: reset.frame.identity.frameId },
+        atUs: 0,
+        sequence: 0,
+        action: 'click',
+        target: { widgetId: 'settings.enable' },
+        button: 'left',
+        renderAfter: true,
+        capturePixels: false,
+      },
+    },
+  );
+  assert(
+    acted.frame.widgets[0]?.values.value === false,
+    'Stable-target click did not toggle state.',
+  );
+  const rendered = await request<{ frame: StoredFrame }>(
+    `/api/v1/previews/${previewIdentity.previewInstanceId}/frames`,
+    {
+      method: 'POST',
+      mutation: true,
+      body: {
+        expected: expectedPreview,
+        timeUs: 110_000,
+        capturePixels: true,
+        includeInspection: true,
+        overlay: null,
+      },
+    },
+  );
+  assert(rendered.frame.timeUs === 110_000, 'Deterministic frame time was not preserved.');
+  assert(rendered.frame.imageArtifact !== null, 'Pixel capture did not return an artifact.');
+  const artifactResponse = await fetch(
+    `http://127.0.0.1:${String(studioPort)}/api/v1/artifacts/${rendered.frame.imageArtifact.artifactId}`,
+    { headers: { Authorization: `Bearer ${token}`, 'X-Studio-Client': 'agent-v1' } },
+  );
+  const artifactBytes = new Uint8Array(await artifactResponse.arrayBuffer());
+  assert(
+    artifactResponse.ok && artifactBytes[0] === 0x89 && artifactBytes[1] === 0x50,
+    'Authenticated image artifact was not a PNG.',
+  );
+  await request<unknown>(`/api/v1/projects/${project.projectId}/references:import`, {
+    method: 'POST',
+    mutation: true,
+    body: {
+      expectedRevision: '2',
+      referenceId: 'target.phase4',
+      mediaType: 'image/png',
+      contentBase64: Buffer.from(artifactBytes).toString('base64'),
+    },
+  });
+  const comparison = await request<{
+    comparison: {
+      metrics: { meanAbsoluteErrorMillionths: number; differingPixels: number };
+      artifact: { artifactId: string };
+    };
+  }>(`/api/v1/projects/${project.projectId}/comparisons`, {
+    method: 'POST',
+    mutation: true,
+    body: {
+      captureArtifactId: rendered.frame.imageArtifact.artifactId,
+      referenceId: 'target.phase4',
+      mode: 'absoluteDifference',
+      transform: {
+        translateMicroPx: [0, 0],
+        scaleMillionths: 1_000_000,
+        cropPx: null,
+        opacityMillionths: 500_000,
+      },
+    },
+  });
+  assert(
+    comparison.comparison.metrics.meanAbsoluteErrorMillionths === 0 &&
+      comparison.comparison.metrics.differingPixels === 0,
+    'Identical reference comparison produced a non-zero difference.',
+  );
+  const captureDigests: string[] = [];
+  for (let repeat = 0; repeat < 3; repeat += 1) {
+    const capture = await request<{
+      capture: { status: string; normalizedTraceSha256: string; frames: StoredFrame[] };
+    }>(`/api/v1/previews/${previewIdentity.previewInstanceId}/captures`, {
+      method: 'POST',
+      mutation: true,
+      body: {
+        expected: expectedPreview,
+        scenario: { path: 'scenarios/toggle-transition.scenario.json' },
+        includeFrames: true,
+        includeInspection: true,
+        includeNormalizedTrace: true,
+      },
+    });
+    assert(capture.capture.status === 'succeeded', 'Deterministic capture did not succeed.');
+    assert(capture.capture.frames.length === 4, 'Normative 10 fps cadence did not include endUs.');
+    captureDigests.push(capture.capture.normalizedTraceSha256);
+  }
+  assert(
+    new Set(captureDigests).size === 1,
+    'Three clean API captures did not produce one normalized trace digest.',
+  );
+
   const queuedCancellation = await request<{ build: PublicBuild }>(
     `/api/v1/projects/${project.projectId}/builds`,
     {
@@ -144,6 +299,9 @@ try {
     cacheCorruptionRecovered: true,
     stableObjectsReused: true,
     assetBundleReused: true,
+    phase4PreviewInspection: true,
+    phase4ReferenceComparison: true,
+    phase4ThreeRepeatCapture: true,
     phaseDurationsMs: {
       initial: firstBuild.phaseDurationsMs,
       failed: failedBuild.phaseDurationsMs,

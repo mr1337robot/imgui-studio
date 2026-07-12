@@ -27,6 +27,7 @@
   },
   "include": [
     "apps/studio-service/**/*.ts",
+    "apps/agent-adapter/**/*.ts",
     "eslint.config.mjs",
     "vitest.config.ts",
     "scripts/**/*.mjs",

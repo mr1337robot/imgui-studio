@@ -380,6 +380,25 @@ Interaction Interact(const WidgetDescriptor& descriptor) {
         result.focused = ImGui::IsItemFocused();
     }
     auto& widgets = CurrentContext().Internal().widgets;
+    const Rect hitbox = descriptor.hitbox.value_or(descriptor.bounds);
+    const bool allowsOverlap = (static_cast<unsigned>(descriptor.flags) &
+                                static_cast<unsigned>(ItemFlags::AllowOverlap)) != 0;
+    for (const auto& prior : widgets) {
+        const bool priorAllowsOverlap = prior.allowsOverlap;
+        const bool overlaps =
+            hitbox.min.x < prior.hitbox.max.x && hitbox.max.x > prior.hitbox.min.x &&
+            hitbox.min.y < prior.hitbox.max.y && hitbox.max.y > prior.hitbox.min.y;
+        if (overlaps && !allowsOverlap && !priorAllowsOverlap) {
+            Diagnose("HITBOX_OVERLAP", std::string(descriptor.stableId),
+                     "Interactive hitboxes overlap without an overlap allowance.");
+        }
+    }
+    const ImVec2 viewport = ImGui::GetIO().DisplaySize;
+    if (descriptor.bounds.max.x <= 0.0F || descriptor.bounds.max.y <= 0.0F ||
+        descriptor.bounds.min.x >= viewport.x || descriptor.bounds.min.y >= viewport.y) {
+        Diagnose("OUT_OF_VIEWPORT", std::string(descriptor.stableId),
+                 "Submitted widget is outside the canonical viewport.");
+    }
     if (std::ranges::any_of(widgets,
                             [&](const auto& item) { return item.stableId == descriptor.stableId; }))
         Diagnose("DUPLICATE_STABLE_ID", std::string(descriptor.stableId),
@@ -387,8 +406,9 @@ Interaction Interact(const WidgetDescriptor& descriptor) {
     widgets.push_back({std::string(descriptor.stableId),
                        std::string(descriptor.semanticType),
                        descriptor.bounds,
-                       descriptor.hitbox.value_or(descriptor.bounds),
+                       hitbox,
                        result,
+                       allowsOverlap,
                        false,
                        {}});
     return result;

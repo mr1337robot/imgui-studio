@@ -298,6 +298,9 @@ Acceptance:
 
 ## 8. Phase 4 — Inspection and visual authoring
 
+**Status: complete.** Stored-frame inspection, deterministic capture, comparison, and adapter
+evidence is recorded in [`docs/phase-4-completion.md`](docs/phase-4-completion.md).
+
 ### WP4.1 Widget inspection
 
 Tasks:

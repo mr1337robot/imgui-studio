@@ -96,6 +96,7 @@
         });
         window.__studioLastFrame = null;
         window.__studioCaptureRequest = null;
+        window.__studioLastCaptureBytes = null;
 
         window.addEventListener('message', (event) => {
           // A capture request is accepted only from this iframe's actual parent at the validated

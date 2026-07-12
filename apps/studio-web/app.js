@@ -27,6 +27,8 @@ const elements = Object.fromEntries(
     'speed-input',
     'seek-input',
     'seek-button',
+    'inspect-button',
+    'inspection-overlay',
   ].map((id) => [id, document.getElementById(id)]),
 );
 
@@ -39,6 +41,7 @@ await authorizePreviewOrigin();
 await initializeProject();
 
 let lastPreviewTimeUs = 0;
+let lastToggleBounds = null;
 const sendRuntimeCommand = (command) =>
   elements.preview.contentWindow?.postMessage(command, 'http://127.0.0.1:4174');
 elements['restart-button'].addEventListener('click', () =>
@@ -66,6 +69,11 @@ elements['seek-button'].addEventListener('click', () => {
     sendRuntimeCommand({ type: 'studio.runtime.render', timeUs });
   }
 });
+elements['inspect-button'].addEventListener('click', () => {
+  const enabled = elements['inspect-button'].getAttribute('aria-pressed') !== 'true';
+  elements['inspect-button'].setAttribute('aria-pressed', String(enabled));
+  elements['inspection-overlay'].hidden = !enabled || lastToggleBounds === null;
+});
 
 window.addEventListener('message', (event) => {
   if (event.origin !== 'http://127.0.0.1:4174' || event.source !== elements.preview.contentWindow)
@@ -79,6 +87,15 @@ window.addEventListener('message', (event) => {
     lastPreviewTimeUs = message.clock?.timeUs ?? lastPreviewTimeUs;
     elements['seek-input'].value = String(lastPreviewTimeUs);
     const bounds = message.toggle;
+    lastToggleBounds = bounds;
+    Object.assign(elements['inspection-overlay'].style, {
+      left: `${String(bounds.xPx)}px`,
+      top: `${String(bounds.yPx)}px`,
+      width: `${String(bounds.widthPx)}px`,
+      height: `${String(bounds.heightPx)}px`,
+    });
+    elements['inspection-overlay'].hidden =
+      elements['inspect-button'].getAttribute('aria-pressed') !== 'true';
     elements['geometry-value'].textContent =
       `${bounds.xPx.toFixed(1)}, ${bounds.yPx.toFixed(1)} · ${bounds.widthPx.toFixed(1)} × ${bounds.heightPx.toFixed(1)}`;
   }

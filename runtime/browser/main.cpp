@@ -118,6 +118,9 @@ EM_JS(void, CaptureIfRequested, (), {
             return;
         }
         blob.arrayBuffer().then(function(bytes) {
+            // Retain a private copy for the authenticated service controller. The posted buffer is
+            // transferred and detached, so storing that same object would make later reads empty.
+            window.__studioLastCaptureBytes = bytes.slice(0);
             // The transfer list moves ownership of the ArrayBuffer to the parent without copying
             // a multi-megabyte capture through the structured-clone algorithm.
             window.parent.postMessage(

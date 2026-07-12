@@ -2,8 +2,10 @@
 #include <cstdlib>
 #include <imgui.h>
 #include <studio/animation.hpp>
+#include <studio/inspection.hpp>
 #include <studio/runtime.hpp>
 #include <studio/version.hpp>
+#include <studio/widget.hpp>
 
 int main() {
     static_assert(__cplusplus >= 202002L, "ImGui Studio requires C++20 or newer");
@@ -48,6 +50,47 @@ int main() {
         return 15;
     }
     studio::EndFrame(runtime);
+
+    // Recoverable inspection defects remain bounded diagnostics and do not poison draw geometry.
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = {320.0F, 200.0F};
+    io.DeltaTime = 1.0F / 60.0F;
+    unsigned char* fontPixels = nullptr;
+    int fontWidth = 0;
+    int fontHeight = 0;
+    io.Fonts->GetTexDataAsRGBA32(&fontPixels, &fontWidth, &fontHeight);
+    ImGui::NewFrame();
+    ImGui::Begin("diagnostic-fixture");
+    studio::BeginFrame(runtime, {.frameIndex = 1,
+                                 .absoluteTimeUs = 0,
+                                 .deltaTimeUs = 0,
+                                 .viewportPixels = io.DisplaySize,
+                                 .dpiScale = 1.0F});
+    static_cast<void>(studio::Interact({.stableId = "invalid.geometry",
+                                        .semanticType = "fixture",
+                                        .imguiId = ImGui::GetID("invalid"),
+                                        .bounds = {{10.0F, 10.0F}, {5.0F, 20.0F}}}));
+    const studio::Rect overlappingBounds{{20.0F, 20.0F}, {80.0F, 50.0F}};
+    static_cast<void>(studio::Interact({.stableId = "fixture.first",
+                                        .semanticType = "fixture",
+                                        .imguiId = ImGui::GetID("first"),
+                                        .bounds = overlappingBounds}));
+    static_cast<void>(studio::Interact({.stableId = "fixture.second",
+                                        .semanticType = "fixture",
+                                        .imguiId = ImGui::GetID("second"),
+                                        .bounds = overlappingBounds}));
+    bool invalidGeometryFound = false;
+    bool overlapFound = false;
+    for (const auto& diagnostic : studio::RuntimeDiagnostics()) {
+        invalidGeometryFound |= diagnostic.code == "INVALID_GEOMETRY";
+        overlapFound |= diagnostic.code == "HITBOX_OVERLAP";
+    }
+    if (!invalidGeometryFound || !overlapFound) {
+        return 16;
+    }
+    studio::EndFrame(runtime);
+    ImGui::End();
+    ImGui::Render();
     ImGui::DestroyContext(imgui);
 
     return EXIT_SUCCESS;

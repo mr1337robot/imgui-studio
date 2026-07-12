@@ -1,8 +1,8 @@
 # Studio Local Service
 
-The Phase 2 service is the canonical authority for project discovery, source files, revisions,
-builds, immutable preview artifacts, and last-known-good preview identity. The browser is a client;
-it never writes project files or invokes CMake directly.
+The service is the canonical authority for projects, revisions, builds, isolated preview instances,
+stored frames, captures, references, comparisons, artifacts, and last-known-good identity. The
+browser is a client; it never writes project files or invokes CMake directly.
 
 ## Public entry point
 
@@ -25,10 +25,14 @@ authenticated preview origin. It discovers the starter under `examples/` by defa
 - `unified-diff.ts` applies exact-context patches without fuzzy retargeting.
 - `build-coordinator.ts` owns build state, cancellation, sanitized processes, bounded logs,
   diagnostics, cache integrity, artifacts, smoke testing, and preview promotion.
+- `preview-coordinator.ts` owns Chromium instances, deterministic time, exact-frame targeting,
+  stored inspection snapshots, capture artifacts, retention, and teardown.
+- `comparison-service.ts` validates bounded PNG/JPEG/WebP references and produces transformed
+  side-by-side, overlay, absolute-difference, and edge-difference artifacts.
 - `http-server.ts` owns authentication, idempotency, Host/origin checks, API envelopes, WebSocket
   hints, Studio delivery, and the authenticated preview origin.
 
-Business logic remains below HTTP so tests and a future thin MCP adapter share one implementation.
+Business logic remains below HTTP; `apps/agent-adapter` is only a protocol mapping over it.
 
 ## Lifecycle and recovery
 
