@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "benchmarkId": "neon-reference-v1",
+  "viewport": { "widthPx": 900, "heightPx": 600, "dpiScaleMilli": 1000 },
+  "attemptCount": 10,
+  "minimumCompletedRuns": 8,
+  "minimumHighQualityRuns": 8,
+  "minimumOverallRating": 4,
+  "minimumDeterministicPercent": 95,
+  "maximumGeometryDifferencePx": 2,
+  "requiredControls": [
+    "brandedHeader",
+    "sidebarGroups",
+    "nestedNavigation",
+    "twoContentPanels",
+    "animatedToggle",
+    "animatedIntegerSlider",
+    "animatedFloatSlider",
+    "keybind",
+    "combo",
+    "colorPicker",
+    "button",
+    "customFontAndIcons"
+  ],
+  "requiredAnimationStates": ["opening", "hover", "selection", "toggle", "slider", "dropdown"],
+  "requiredScenarios": ["toggle-transition"],
+  "permittedTools": [
+    "project.get",
+    "source.read",
+    "source.patch",
+    "build.start",
+    "build.get",
+    "preview.load",
+    "preview.reset",
+    "preview.render",
+    "preview.inspect",
+    "preview.act",
+    "capture.run",
+    "reference.import",
+    "reference.compare",
+    "export_project"
+  ],
+  "humanDimensions": [
+    "visualHierarchy",
+    "consistency",
+    "customAppearance",
+    "typographyAndAssets",
+    "animationPolish",
+    "overall"
+  ]
+}

@@ -626,7 +626,7 @@ export class StudioHttpServer {
     }
     response.writeHead(200, {
       'Cache-Control': 'no-store',
-      'Content-Security-Policy': `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; frame-src ${this.#previewOrigin}; connect-src 'self' ${this.#previewOrigin} ws://127.0.0.1:${String(this.#studioPort)}; img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+      'Content-Security-Policy': `default-src 'self'; script-src 'self' 'nonce-${nonce}' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; frame-src ${this.#previewOrigin}; connect-src 'self' ${this.#previewOrigin} ws://127.0.0.1:${String(this.#studioPort)}; img-src 'self' data: blob:; font-src 'self' data:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
       'Content-Type': mediaType(path),
       'Cross-Origin-Resource-Policy': 'same-origin',
       'X-Content-Type-Options': 'nosniff',
@@ -995,7 +995,7 @@ function previewHeaders(path: string): Record<string, string> {
   return {
     'Cache-Control': 'no-store',
     'Content-Security-Policy':
-      "default-src 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; font-src 'self'; base-uri 'none'; form-action 'none'",
+      "default-src 'none'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'",
     'Content-Type': mediaType(path),
     'Cross-Origin-Resource-Policy': 'same-origin',
     'X-Content-Type-Options': 'nosniff',

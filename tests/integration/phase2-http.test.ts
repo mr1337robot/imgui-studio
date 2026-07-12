@@ -70,6 +70,65 @@ describe('Phase 2 HTTP authority', () => {
     });
     expect(hostile.response.status).toBe(401);
     expect(project.currentRevision).toBe('0');
+
+    const wrongToken = await jsonRequest(`/api/v1/projects/${project.projectId}/files:patch`, {
+      method: 'POST',
+      headers: {
+        ...mutationHeaders('11111111-1111-4111-8111-111111111113'),
+        Authorization: 'Bearer deliberately-wrong-token',
+      },
+      body,
+    });
+    expect(wrongToken.response.status).toBe(401);
+    expect(project.currentRevision).toBe('0');
+  });
+
+  it.each([
+    '../studio.project.json',
+    'src/../studio.project.json',
+    'src\\menu.cpp',
+    '/etc/passwd',
+    'C:/Windows/win.ini',
+    'src//menu.cpp',
+    'src/./menu.cpp',
+    `src/menu.cpp\0ignored`,
+  ])('rejects hostile protocol path %j without disclosure', async (path) => {
+    const result = await jsonRequest(`/api/v1/projects/${project.projectId}/files:read`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Studio-Client': 'agent-v1' },
+      body: JSON.stringify({ paths: [path], expectedRevision: project.currentRevision }),
+    });
+    expect(result.response.status).toBe(400);
+    expect(errorCode(result.body)).toBe('PATH_OUTSIDE_PROJECT');
+    expect(JSON.stringify(result.body)).not.toContain(projectRoot);
+  });
+
+  it('serves the Studio and preview with restrictive isolation headers', async () => {
+    const studio = await fetch(`http://127.0.0.1:${String(studioPort)}/`);
+    const studioCsp = studio.headers.get('content-security-policy') ?? '';
+    expect(studioCsp).toContain("frame-ancestors 'none'");
+    expect(studioCsp).toContain("object-src 'none'");
+
+    const unauthorizedPreview = await fetch(`http://127.0.0.1:${String(previewPort)}/`);
+    expect(unauthorizedPreview.status).toBeGreaterThanOrEqual(400);
+    expect(unauthorizedPreview.headers.get('access-control-allow-origin')).toBeNull();
+  });
+
+  it('rejects a hostile-origin WebSocket upgrade', async () => {
+    const socket = new WebSocket(`ws://127.0.0.1:${String(studioPort)}/api/v1/events`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Origin: 'https://hostile.example',
+        'X-Studio-Client': 'agent-v1',
+      },
+    });
+    const status = await new Promise<number>((resolvePromise) => {
+      socket.once('unexpected-response', (_request, response) =>
+        resolvePromise(response.statusCode ?? 0),
+      );
+      socket.once('error', () => resolvePromise(401));
+    });
+    expect(status).toBe(401);
   });
 
   it('replays an identical idempotent mutation and rejects key reuse with another body', async () => {

@@ -87,6 +87,8 @@ Fetch and verify the pinned Dear ImGui source for development:
 - Development workflow: [docs/development.md](docs/development.md)
 - Toolchain setup: [docs/operations/toolchain.md](docs/operations/toolchain.md)
 - Contribution standard: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Known limitations: [docs/known-limitations.md](docs/known-limitations.md)
+- Phase 7 release readiness: [docs/phase-7-readiness.md](docs/phase-7-readiness.md)
 - Agent instructions: [AGENTS.md](AGENTS.md)
 
 ## Security warning

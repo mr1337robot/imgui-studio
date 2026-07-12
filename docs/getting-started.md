@@ -1,6 +1,7 @@
 # Getting Started
 
-This guide reaches the Phase 2 Monaco edit/build/preview loop and Windows native parity capture.
+This guide covers the supported starter edit, real C++/WASM preview, deterministic inspection, and
+verified Windows native export journey.
 
 ## 1. Install the native toolchain
 
@@ -54,6 +55,10 @@ shows a structured source location and leaves the previous preview visible with 
 Run `npm run test:browser` for the isolated renderer fixture or `npm run test:studio` for the complete
 human-facing journey.
 
+Use **Restart**, **Play**, **Pause**, **Step**, and **Seek** above the preview to inspect deterministic
+motion. Enable **Inspect bounds** to see stable widget geometry. The automated three-repeat scenario
+and structured inspection journey is exercised by `npm run test:phase2`.
+
 ## 5. Capture and compare Windows parity
 
 Open the live native preview for manual interaction:
@@ -74,7 +79,19 @@ The report and PNG difference are written under `out/comparison/`. The gate requ
 900 x 600 dimensions, identical shared-source hashes, and at most two pixels of geometry
 difference. Pixel and perceptual similarity values are diagnostic.
 
-## 6. Explore the contracts
+## 6. Export and integrate the successful revision
+
+After **Build preview** reports success, choose **Export native**. Studio exports the immutable build
+currently shown in the preview, clean-builds its consumer fixture, and checks packaged-native versus
+browser geometry. If working source is newer, Studio asks you to confirm the older successful
+revision rather than silently retargeting the export.
+
+The package is written beneath the starter's `.studio/exports/<exportId>/` directory. Follow the
+package's generated `README.md`, or use [guides/integration.md](guides/integration.md) for the complete
+consumer ownership and CMake walkthrough. Disposable `.studio` content is intentionally ignored by
+Git.
+
+## 7. Explore the contracts
 
 Start with `PRD.md`, `TECHNICAL_DESIGN.md`, and `MVP_IMPLEMENTATION_PLAN.md`. The executable v1
 schemas live under `schemas/`; valid and invalid examples live under `tests/fixtures/schemas/`.
