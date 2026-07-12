@@ -31,6 +31,8 @@ authenticated preview origin. It discovers the starter under `examples/` by defa
   stored inspection snapshots, capture artifacts, retention, and teardown.
 - `comparison-service.ts` validates bounded PNG/JPEG/WebP references and produces transformed
   side-by-side, overlay, absolute-difference, and edge-difference artifacts.
+- `export-service.ts` resolves immutable successful-build inputs, assembles allowlisted packages,
+  writes provenance/checksums, builds the clean native consumer, and verifies browser/native parity.
 - `http-server.ts` owns authentication, idempotency, Host/origin checks, API envelopes, WebSocket
   hints, Studio delivery, and the authenticated preview origin.
 

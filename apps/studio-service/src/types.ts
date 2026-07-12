@@ -21,6 +21,9 @@ export type ServiceErrorCode =
   | 'SCENARIO_INVALID'
   | 'REFERENCE_NOT_FOUND'
   | 'ASSET_INVALID'
+  | 'EXPORT_REQUIRES_SUCCESSFUL_BUILD'
+  | 'EXPORT_VERIFICATION_FAILED'
+  | 'UNSUPPORTED_RENDERING_TIER'
   | 'LIMIT_EXCEEDED'
   | 'INTERNAL_ERROR';
 
@@ -97,6 +100,14 @@ export interface BuildRecord {
     corruptionRecovered: boolean;
     assetBundleReused: boolean;
   };
+}
+
+/** Immutable input identity and file inventory persisted beside one build snapshot. */
+export interface BuildInputManifest {
+  readonly revision: string;
+  readonly sourceDigest: string;
+  readonly assetDigest: string;
+  readonly files: readonly ProjectFile[];
 }
 
 /** Identity of the last smoke-passed browser preview promoted by the service. */
@@ -179,4 +190,35 @@ export interface ImageArtifact {
   readonly mediaType: 'image/png';
   readonly widthPx: number;
   readonly heightPx: number;
+}
+
+export type ExportStatus = 'resolving' | 'packaging' | 'verifying' | 'succeeded' | 'failed';
+
+/** One package payload entry, ordered by normalized UTF-8 path. */
+export interface ExportFile {
+  readonly path: string;
+  readonly sha256: string;
+  readonly sizeBytes: number;
+  readonly ownership: 'user' | 'studio-managed' | 'export-generated';
+}
+
+/** Terminal or in-progress identity for one immutable native integration export. */
+export interface ExportRecord {
+  readonly schemaVersion: 1;
+  readonly exportId: string;
+  readonly projectId: string;
+  readonly projectRevision: string;
+  readonly buildId: string;
+  readonly outputName: string;
+  readonly format: 'directory';
+  status: ExportStatus;
+  readonly staleSource: boolean;
+  readonly warnings: string[];
+  packageDirectory: string | null;
+  files: ExportFile[];
+  verification: {
+    status: 'pending' | 'passed' | 'failed';
+    geometryMaximumDifferencePx: number | null;
+    reportPath: string | null;
+  };
 }

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://imgui.studio/schemas/export-record/v1.json",
+  "title": "ImGui Studio native export record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "exportId",
+    "projectId",
+    "projectRevision",
+    "buildId",
+    "outputName",
+    "format",
+    "status",
+    "staleSource",
+    "warnings",
+    "packageDirectory",
+    "files",
+    "verification"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "exportId": { "type": "string", "pattern": "^exp_[0-9a-f-]{36}$" },
+    "projectId": { "type": "string", "minLength": 1 },
+    "projectRevision": { "type": "string", "pattern": "^(0|[1-9][0-9]*)$" },
+    "buildId": { "type": "string", "minLength": 1 },
+    "outputName": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,62}$" },
+    "format": { "const": "directory" },
+    "status": { "enum": ["resolving", "packaging", "verifying", "succeeded", "failed"] },
+    "staleSource": { "type": "boolean" },
+    "warnings": { "type": "array", "items": { "type": "string" }, "maxItems": 128 },
+    "packageDirectory": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/path" }] },
+    "files": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "sizeBytes", "ownership"],
+        "properties": {
+          "path": { "$ref": "#/$defs/path" },
+          "sha256": { "$ref": "#/$defs/sha256" },
+          "sizeBytes": { "type": "integer", "minimum": 0 },
+          "ownership": { "enum": ["user", "studio-managed", "export-generated"] }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "geometryMaximumDifferencePx", "reportPath"],
+      "properties": {
+        "status": { "enum": ["pending", "passed", "failed"] },
+        "geometryMaximumDifferencePx": {
+          "anyOf": [{ "type": "null" }, { "type": "number", "minimum": 0 }]
+        },
+        "reportPath": { "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/path" }] }
+      }
+    }
+  },
+  "$defs": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*\\\\).+$"
+    },
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

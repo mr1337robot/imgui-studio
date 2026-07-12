@@ -37,6 +37,8 @@
             "REFERENCE_NOT_FOUND",
             "ASSET_INVALID",
             "EXPORT_REQUIRES_SUCCESSFUL_BUILD",
+            "EXPORT_VERIFICATION_FAILED",
+            "UNSUPPORTED_RENDERING_TIER",
             "OPERATION_NOT_FOUND",
             "OPERATION_CANCELLED",
             "LIMIT_EXCEEDED",

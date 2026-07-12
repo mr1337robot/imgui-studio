@@ -389,14 +389,23 @@ Modes are `sideBySide`, `alphaOverlay`, `absoluteDifference`, and `edgeDifferenc
 ```json
 {
   "buildId": "bld_opaque",
-  "acknowledgeStaleWorkingTree": true,
-  "format": "directory"
+  "format": "directory",
+  "outputName": "neon-settings",
+  "verifyNativeParity": true,
+  "confirmOlderRevision": true
 }
 ```
 
-The build must be successful, smoke-passed, and owned by the project. Export always packages its immutable captured revision—not current working files. If current revision is newer, `acknowledgeStaleWorkingTree` MUST be true. Formats are `directory` and `zip`.
+The build must be successful, smoke-passed, artifact-digest-valid, and owned by the project. Export
+always packages its immutable captured revision—not current working files. If the current revision
+is newer, `confirmOlderRevision` MUST be true. `outputName` matches the project-key grammar. The MVP
+implements deterministic directory packages; archive output remains the PRD P1 follow-up.
 
 The terminal record includes export ID, source identity, package artifact/directory, file list with SHA-256, portability report, licenses, C++/toolchain/ImGui/runtime versions, rendering tier, direct `imgui_internal.h` findings, viewport/DPI parity configuration, and warnings. Packaging uses the allowlisted build graph and approved runtime subset; `.studio`, secrets, external paths, and undeclared files are excluded.
+
+`GET /api/v1/projects/{projectId}/exports/{exportId}` returns the authoritative export record. A
+verified record reports `verification.status = "passed"`, the maximum geometry difference in
+pixels, and the project-relative verification report path.
 
 ## 11. Operations, events, and cancellation
 

@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 import { WebSocket, WebSocketServer } from 'ws';
 import { BuildCoordinator } from './build-coordinator.ts';
 import { ComparisonService, type ComparisonTransform } from './comparison-service.ts';
+import { ExportService } from './export-service.ts';
 import { PreviewCoordinator } from './preview-coordinator.ts';
 import type { ProjectService } from './project-service.ts';
 import { asServiceError, ServiceError } from './service-error.ts';
@@ -32,6 +33,7 @@ export class StudioHttpServer {
   readonly #builds: BuildCoordinator;
   readonly #previews: PreviewCoordinator;
   readonly #comparisons: ComparisonService;
+  readonly #exports: ExportService;
   readonly #studioPort: number;
   readonly #previewPort: number;
   readonly #studioOrigin: string;
@@ -63,6 +65,7 @@ export class StudioHttpServer {
       this.#token,
     );
     this.#comparisons = new ComparisonService(project, this.#previews);
+    this.#exports = new ExportService(repositoryRoot, project, this.#builds, this.#previews);
     this.#studioServer.on('upgrade', (request, socket, head) => {
       const upgradeUrl = new URL(request.url ?? '/', this.#studioOrigin);
       if (
@@ -84,6 +87,7 @@ export class StudioHttpServer {
   /** Starts both loopback listeners and returns the token for the trusted launcher channel. */
   public async listen(): Promise<{ token: string; studioUrl: string }> {
     await this.#builds.initialize();
+    await this.#exports.initialize();
     await Promise.all([
       listen(this.#studioServer, this.#studioPort),
       listen(this.#previewServer, this.#previewPort),
@@ -275,6 +279,50 @@ export class StudioHttpServer {
       });
       this.#emit('comparison.changed', result);
       this.#json(response, 201, result);
+      return;
+    }
+    if (url.pathname === `${projectPrefix}/exports` && method === 'POST') {
+      this.#requireMutation(request);
+      const body = await readJsonBody(request);
+      const result = await this.#idempotent(request, body, async () => {
+        const values = requireObject(body);
+        assertAllowedKeys(values, [
+          'buildId',
+          'format',
+          'outputName',
+          'verifyNativeParity',
+          'confirmOlderRevision',
+        ]);
+        if (
+          typeof values.buildId !== 'string' ||
+          values.format !== 'directory' ||
+          typeof values.outputName !== 'string' ||
+          typeof values.verifyNativeParity !== 'boolean' ||
+          typeof values.confirmOlderRevision !== 'boolean'
+        ) {
+          throw invalidRequest('The export request is malformed.');
+        }
+        return {
+          export: await this.#exports.start({
+            buildId: values.buildId,
+            format: values.format,
+            outputName: values.outputName,
+            verifyNativeParity: values.verifyNativeParity,
+            confirmOlderRevision: values.confirmOlderRevision,
+          }),
+        };
+      });
+      this.#emit('export.changed', result);
+      this.#json(response, 201, result);
+      return;
+    }
+    const exportMatch = new RegExp(
+      `^${escapeRegularExpression(projectPrefix)}/exports/([^/:]+)$`,
+    ).exec(url.pathname);
+    if (exportMatch && method === 'GET') {
+      const exportId = exportMatch[1];
+      if (exportId === undefined) throw invalidRequest('The export ID is missing.');
+      this.#json(response, 200, { export: this.#exports.get(exportId) });
       return;
     }
     const resetPreview = /^\/api\/v1\/previews\/([^/:]+):reset$/.exec(url.pathname);

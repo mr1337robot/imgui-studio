@@ -9,14 +9,16 @@ in native exports. HTML or JSON widget recreations are not the source of truth.
 
 ## Status
 
-Phase 5 is complete. The repository includes the authenticated local project service, Monaco C++
+Phase 6 is complete. The repository includes the authenticated local project service, Monaco C++
 editor, atomic revision-safe patches, incremental/cancellable Emscripten builds, structured compiler
 diagnostics, immutable artifacts, smoke-gated preview replacement, and last-known-good preview
 retention. The shared C++ runtime adds deterministic microsecond time, resettable tween/spring
 state, stable custom-widget interaction, timeline controls, and repeatable filmstrip traces. The
-starter now includes a managed theme, validated licensed assets, portable visual effects, and a
-custom component set for a cohesive polished menu. See
-[docs/phase-5-completion.md](docs/phase-5-completion.md) for evidence.
+starter includes a managed theme, validated licensed assets, portable visual effects, and a custom
+component set for a cohesive polished menu. Successful immutable builds can now be exported as
+deterministic native CMake packages, clean-built against pinned Dear ImGui, and checked against the
+canonical browser preview with the two-pixel geometry gate. See
+[docs/phase-6-completion.md](docs/phase-6-completion.md) for evidence.
 
 ## Prerequisites
 
@@ -66,8 +68,8 @@ Fetch and verify the pinned Dear ImGui source for development:
 | `npm run test:browser`       | Exercise and capture the real WASM preview in Chromium   |
 | `npm run compare:captures`   | Compare browser/native captures and write a PNG diff     |
 | `npm run preview:serve`      | Serve the shell and preview on separate loopback origins |
-| `npm run studio`             | Start the authenticated Phase 2 editor and local service |
-| `npm run test:phase2`        | Run the revision/build/cache/preview service gate        |
+| `npm run studio`             | Start the authenticated editor and local service         |
+| `npm run test:phase2`        | Run the build/preview/inspection/export service gate     |
 | `npm run test:studio`        | Run the Monaco edit/build/stale-preview browser journey  |
 | `.\toolchain\run-native.ps1` | Open the persistent interactive Win32/DX11 preview       |
 | `npm run schemas:generate`   | Regenerate TypeScript types from canonical JSON Schemas  |

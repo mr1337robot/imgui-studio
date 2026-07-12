@@ -22,3 +22,7 @@ changes canonical framebuffer pixels.
 
 Run the application with `npm run studio` after loading Emscripten. Run its browser journey with
 `npm run test:studio`.
+
+**Export native** selects the current successful preview build, requests explicit confirmation when
+working source is newer, and shows the project-relative verified package directory. Packaging and
+MSVC parity verification remain service-owned; the browser never copies files or invokes CMake.

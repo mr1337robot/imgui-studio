@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ImGui Studio — Phase 2</title>
+    <title>ImGui Studio — Phase 6</title>
     <link rel="stylesheet" href="/styles.css" />
     <script nonce="__STUDIO_CSP_NONCE__">
       globalThis.__studioBootstrap = { token: '__STUDIO_SESSION_TOKEN__' };
@@ -22,10 +22,12 @@
           <span id="preview-status" class="status status-loading">No preview</span>
           <button id="save-button" type="button" disabled>Save</button>
           <button id="build-button" type="button" disabled>Build preview</button>
+          <button id="export-button" type="button" disabled>Export native</button>
+          <output id="export-status" class="status">No export</output>
         </div>
       </header>
 
-      <section class="workspace" aria-label="Phase 2 edit and preview workspace">
+      <section class="workspace" aria-label="ImGui Studio edit, preview, and export workspace">
         <aside class="project-panel">
           <div class="panel-heading">
             <span>PROJECT</span>

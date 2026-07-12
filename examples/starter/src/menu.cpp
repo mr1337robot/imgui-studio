@@ -119,7 +119,7 @@ void ResetMenuState(MenuState& state) noexcept {
     state = MenuState{};
 }
 
-MenuDiagnostics RenderMenu(MenuState& state) {
+MenuDiagnostics RenderMenu(MenuState& state, const MenuEvents& events) {
     ImGuiIO& io = ImGui::GetIO();
     const Theme theme = DefaultTheme();
     ImGui::SetNextWindowPos({0.0F, 0.0F});
@@ -173,6 +173,11 @@ MenuDiagnostics RenderMenu(MenuState& state) {
     ImGui::End();
     ImGui::PopStyleColor();
     ImGui::PopStyleVar(2);
+    // Integration callbacks are synchronous and occur only after all draw commands and
+    // diagnostics for this menu frame are complete. The browser/native Studio hosts pass the
+    // default empty binding, while exported consumers may connect application observability.
+    if (events.onRendered)
+        events.onRendered(diagnostics);
     return diagnostics;
 }
 

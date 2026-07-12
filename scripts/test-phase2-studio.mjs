@@ -76,6 +76,10 @@ try {
   await page.getByRole('button', { name: 'Build preview' }).click();
   await page.getByText('Build succeeded', { exact: true }).waitFor({ timeout: 60_000 });
   await page.getByText('Preview ready', { exact: true }).waitFor({ timeout: 15_000 });
+  assert(
+    await page.locator('#export-button').isEnabled(),
+    'Native export action did not become available for the successful preview.',
+  );
   const workingPreviewUrl = await page.locator('#preview').getAttribute('src');
   assert(
     workingPreviewUrl?.includes('projectRevision=2'),

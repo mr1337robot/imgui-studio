@@ -10,6 +10,8 @@ const elements = Object.fromEntries(
     'preview-status',
     'save-button',
     'build-button',
+    'export-button',
+    'export-status',
     'stale-indicator',
     'project-tree',
     'active-path',
@@ -116,6 +118,7 @@ window.addEventListener('message', (event) => {
 
 elements['save-button'].addEventListener('click', () => void saveActiveFile());
 elements['build-button'].addEventListener('click', () => void buildPreview());
+elements['export-button'].addEventListener('click', () => void exportNativePackage());
 
 async function initializeProject() {
   const listing = await api('/api/v1/projects');
@@ -274,11 +277,50 @@ function renderProjectState() {
   elements['project-name'].textContent = project.name;
   elements['revision-status'].textContent = `Revision ${project.currentRevision}`;
   elements['build-button'].disabled = false;
+  elements['export-button'].disabled = project.currentPreview === null;
   const stale = project.currentPreview?.projectRevision !== project.currentRevision;
   elements['stale-indicator'].hidden = !stale;
   if (stale) {
     elements['preview-status'].textContent = 'Working preview · stale';
     elements['preview-status'].className = 'status status-failed';
+  }
+}
+
+async function exportNativePackage() {
+  const selected = project.currentPreview;
+  if (!selected) return;
+  const stale = selected.projectRevision !== project.currentRevision;
+  if (
+    stale &&
+    !confirm(
+      `Export successful revision ${selected.projectRevision} instead of active revision ${project.currentRevision}?`,
+    )
+  ) {
+    return;
+  }
+  setBusy(true);
+  elements['export-status'].textContent = 'Packaging and verifying…';
+  try {
+    const result = await api(`/api/v1/projects/${project.projectId}/exports`, {
+      method: 'POST',
+      mutation: true,
+      body: {
+        buildId: selected.buildId,
+        format: 'directory',
+        outputName: project.projectKey,
+        verifyNativeParity: true,
+        confirmOlderRevision: stale,
+      },
+    });
+    elements['export-status'].textContent =
+      `Verified ≤${String(result.export.verification.geometryMaximumDifferencePx)} px · ${result.export.packageDirectory}`;
+    elements['export-status'].className = 'status status-ready';
+  } catch (error) {
+    elements['export-status'].textContent =
+      error instanceof Error ? error.message : 'Export failed.';
+    elements['export-status'].className = 'status status-failed';
+  } finally {
+    setBusy(false);
   }
 }
 
@@ -488,6 +530,7 @@ async function api(path, options = {}) {
 
 function setBusy(busy) {
   elements['build-button'].disabled = busy;
+  elements['export-button'].disabled = busy || project.currentPreview === null;
   elements['save-button'].disabled =
     busy || !activeFile || editor.getValue() === activeFile.content;
 }

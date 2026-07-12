@@ -5,6 +5,7 @@ import { StudioHttpServer } from '../../apps/studio-service/src/http-server.ts';
 import { ProjectService } from '../../apps/studio-service/src/project-service.ts';
 import type {
   BuildRecord,
+  ExportRecord,
   ProjectFile,
   ProjectSnapshot,
   StoredFrame,
@@ -23,6 +24,9 @@ await cp(resolve(repositoryRoot, 'examples/starter'), projectRoot, {
   filter: (source) => !source.includes(resolve(repositoryRoot, 'examples/starter/.studio')),
 });
 await rm(resolve(projectRoot, '.studio'), { recursive: true, force: true });
+// An undeclared project file deliberately lives in the successful build snapshot. Export must use
+// the manifest graph, not recursively copy every snapshot file into the consumer package.
+await writeFile(resolve(projectRoot, 'secret.env'), 'must-not-be-exported\n');
 
 const project = await ProjectService.open(projectRoot, repositoryRoot);
 const server = new StudioHttpServer(repositoryRoot, project, { studioPort, previewPort });
@@ -275,6 +279,155 @@ try {
     'Three clean API captures did not produce one normalized trace digest.',
   );
 
+  const rejectedExport = await request<unknown>(`/api/v1/projects/${project.projectId}/exports`, {
+    method: 'POST',
+    mutation: true,
+    body: {
+      buildId: failedBuild.buildId,
+      format: 'directory',
+      outputName: 'rejected-export',
+      verifyNativeParity: true,
+      confirmOlderRevision: false,
+    },
+  }).catch((error: unknown) => error);
+  assert(
+    rejectedExport instanceof Error &&
+      rejectedExport.message.includes('EXPORT_REQUIRES_SUCCESSFUL_BUILD'),
+    'A failed build was accepted for export.',
+  );
+  const unconfirmedOlderExport = await request<unknown>(
+    `/api/v1/projects/${project.projectId}/exports`,
+    {
+      method: 'POST',
+      mutation: true,
+      body: {
+        buildId: firstBuild.buildId,
+        format: 'directory',
+        outputName: 'older-unconfirmed',
+        verifyNativeParity: false,
+        confirmOlderRevision: false,
+      },
+    },
+  ).catch((error: unknown) => error);
+  assert(
+    unconfirmedOlderExport instanceof Error &&
+      unconfirmedOlderExport.message.includes('REVISION_CONFLICT'),
+    'An older successful build exported without explicit confirmation.',
+  );
+  const confirmedOlderExport = await request<{ export: ExportRecord }>(
+    `/api/v1/projects/${project.projectId}/exports`,
+    {
+      method: 'POST',
+      mutation: true,
+      body: {
+        buildId: firstBuild.buildId,
+        format: 'directory',
+        outputName: 'older-confirmed',
+        verifyNativeParity: false,
+        confirmOlderRevision: true,
+      },
+    },
+  );
+  assert(
+    confirmedOlderExport.export.status === 'succeeded' &&
+      confirmedOlderExport.export.projectRevision === '0' &&
+      confirmedOlderExport.export.staleSource &&
+      confirmedOlderExport.export.warnings.length > 0,
+    'Confirmed older-build export lost its immutable revision or warning.',
+  );
+
+  const firstExport = await request<{ export: ExportRecord }>(
+    `/api/v1/projects/${project.projectId}/exports`,
+    {
+      method: 'POST',
+      mutation: true,
+      body: {
+        buildId: replacementBuild.buildId,
+        format: 'directory',
+        outputName: 'imgui-studio-starter',
+        verifyNativeParity: true,
+        confirmOlderRevision: false,
+      },
+    },
+  );
+  assert(firstExport.export.status === 'succeeded', 'Native package export did not succeed.');
+  assert(
+    firstExport.export.verification.status === 'passed' &&
+      (firstExport.export.verification.geometryMaximumDifferencePx ?? 99) <= 2,
+    'Exported package did not pass browser/native geometry parity.',
+  );
+  assert(
+    firstExport.export.files.every(
+      (file) =>
+        !file.path.startsWith('.studio/') &&
+        !file.path.startsWith('references/') &&
+        !file.path.includes('secret'),
+    ),
+    'Export inventory contained a forbidden project/cache path.',
+  );
+  const firstPackage = resolve(projectRoot, firstExport.export.packageDirectory ?? 'missing');
+  const checksums = await readFile(resolve(firstPackage, 'SHA256SUMS'), 'utf8');
+  assert(
+    checksums.trim().split('\n').length === firstExport.export.files.length - 1,
+    'SHA256SUMS did not cover every package payload except itself.',
+  );
+  const provenance = JSON.parse(
+    await readFile(resolve(firstPackage, 'studio-export.json'), 'utf8'),
+  ) as {
+    buildId?: unknown;
+    project?: { revision?: unknown };
+    verification?: { status?: unknown };
+  };
+  assert(
+    provenance.buildId === replacementBuild.buildId &&
+      provenance.project?.revision === '2' &&
+      provenance.verification?.status === 'passed',
+    'Export provenance did not identify the selected successful build.',
+  );
+
+  const secondExport = await request<{ export: ExportRecord }>(
+    `/api/v1/projects/${project.projectId}/exports`,
+    {
+      method: 'POST',
+      mutation: true,
+      body: {
+        buildId: replacementBuild.buildId,
+        format: 'directory',
+        outputName: 'imgui-studio-starter',
+        verifyNativeParity: true,
+        confirmOlderRevision: false,
+      },
+    },
+  );
+  assert(
+    JSON.stringify(firstExport.export.files.map(({ path, sha256 }) => ({ path, sha256 }))) ===
+      JSON.stringify(secondExport.export.files.map(({ path, sha256 }) => ({ path, sha256 }))),
+    'Two exports of the same successful build produced different payload digests.',
+  );
+
+  // Successful-build identity is necessary but insufficient: an immutable input modified behind
+  // the service must fail digest verification before any package is assembled.
+  await writeFile(
+    resolve(projectRoot, '.studio/builds', replacementBuild.buildId, 'snapshot/src/menu.cpp'),
+    'tampered immutable input\n',
+  );
+  const tamperedExport = await request<unknown>(`/api/v1/projects/${project.projectId}/exports`, {
+    method: 'POST',
+    mutation: true,
+    body: {
+      buildId: replacementBuild.buildId,
+      format: 'directory',
+      outputName: 'tampered-rejected',
+      verifyNativeParity: false,
+      confirmOlderRevision: false,
+    },
+  }).catch((error: unknown) => error);
+  assert(
+    tamperedExport instanceof Error &&
+      tamperedExport.message.includes('EXPORT_REQUIRES_SUCCESSFUL_BUILD'),
+    'A build with a modified immutable input was accepted for export.',
+  );
+
   const queuedCancellation = await request<{ build: PublicBuild }>(
     `/api/v1/projects/${project.projectId}/builds`,
     {
@@ -308,6 +461,10 @@ try {
     phase4PreviewInspection: true,
     phase4ReferenceComparison: true,
     phase4ThreeRepeatCapture: true,
+    phase6ExportId: firstExport.export.exportId,
+    phase6CleanConsumerBuild: true,
+    phase6PackageParity: true,
+    phase6ReproduciblePayloads: true,
     phaseDurationsMs: {
       initial: firstBuild.phaseDurationsMs,
       failed: failedBuild.phaseDurationsMs,

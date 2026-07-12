@@ -1,0 +1,29 @@
+{
+  "schema": "export-record.schema.json",
+  "document": {
+    "schemaVersion": 1,
+    "exportId": "exp_123e4567-e89b-42d3-a456-426614174000",
+    "projectId": "prj_fixture",
+    "projectRevision": "7",
+    "buildId": "bld_fixture",
+    "outputName": "fixture-menu",
+    "format": "directory",
+    "status": "succeeded",
+    "staleSource": false,
+    "warnings": [],
+    "packageDirectory": ".studio/exports/fixture/fixture-menu",
+    "files": [
+      {
+        "path": "CMakeLists.txt",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sizeBytes": 42,
+        "ownership": "export-generated"
+      }
+    ],
+    "verification": {
+      "status": "passed",
+      "geometryMaximumDifferencePx": 0,
+      "reportPath": "verification/report.json"
+    }
+  }
+}

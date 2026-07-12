@@ -11,6 +11,7 @@ JSON Schemas under this directory are canonical protocol and project contracts. 
 - Common API error envelopes
 - Canonical framebuffer capture metadata
 - Browser/native comparison reports
+- Native integration export records
 
 Run `npm run schemas:generate` after changing a schema and commit the generated TypeScript files.
 Valid and invalid fixtures are tested with strict Ajv 2020 validation.

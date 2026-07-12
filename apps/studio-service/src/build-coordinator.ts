@@ -3,10 +3,10 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { copyFile, cp, mkdir, readFile, readdir, rm, stat } from 'node:fs/promises';
 import { basename, relative, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { sha256, writeAtomic } from './filesystem.ts';
+import { normalizeProjectPath, sha256, writeAtomic } from './filesystem.ts';
 import type { ProjectService } from './project-service.ts';
 import { ServiceError } from './service-error.ts';
-import type { BuildDiagnostic, BuildRecord, PreviewIdentity } from './types.ts';
+import type { BuildDiagnostic, BuildInputManifest, BuildRecord, PreviewIdentity } from './types.ts';
 
 const maximumRawLogBytes = 1024 * 1024;
 const buildTimeoutMs = 120_000;
@@ -166,6 +166,91 @@ export class BuildCoordinator {
       throw new ServiceError('BUILD_NOT_FOUND', 'The requested build does not exist.', 404, false);
     }
     return structuredClone(record);
+  }
+
+  /**
+   * Resolves and re-verifies the immutable inputs of a successful build for export.
+   *
+   * Exporters receive the build-owned snapshot rather than the mutable project root. Every
+   * recorded source byte and preview artifact is hashed again so post-build tampering fails closed
+   * before packaging begins.
+   */
+  public async resolveSuccessfulInput(buildId: string): Promise<{
+    record: BuildRecord;
+    input: BuildInputManifest;
+    snapshotDirectory: string;
+  }> {
+    const record = this.#records.get(buildId);
+    if (!record) {
+      throw new ServiceError(
+        'EXPORT_REQUIRES_SUCCESSFUL_BUILD',
+        'Only a smoke-passed successful build can be exported.',
+        409,
+        false,
+      );
+    }
+    if (
+      record.status !== 'succeeded' ||
+      record.smokePassed !== true ||
+      record.artifactDirectory === null
+    ) {
+      throw new ServiceError(
+        'EXPORT_REQUIRES_SUCCESSFUL_BUILD',
+        'Only a smoke-passed successful build can be exported.',
+        409,
+        false,
+      );
+    }
+    const buildRoot = resolve(this.project.root, `.studio/builds/${buildId}`);
+    let parsedInput: unknown;
+    try {
+      parsedInput = JSON.parse(
+        await readFile(resolve(buildRoot, 'input-manifest.json'), 'utf8'),
+      ) as unknown;
+    } catch {
+      throw new ServiceError(
+        'EXPORT_REQUIRES_SUCCESSFUL_BUILD',
+        'The selected build input record is missing or malformed.',
+        409,
+        false,
+      );
+    }
+    if (!isBuildInputManifest(parsedInput) || parsedInput.revision !== record.projectRevision) {
+      throw new ServiceError(
+        'EXPORT_REQUIRES_SUCCESSFUL_BUILD',
+        'The selected build input identity is inconsistent.',
+        409,
+        false,
+      );
+    }
+    const input = parsedInput;
+    const snapshotDirectory = resolve(buildRoot, 'snapshot');
+    for (const file of input.files) {
+      const normalized = normalizeProjectPath(file.path);
+      const bytes = await readFile(resolve(snapshotDirectory, ...normalized.split('/')));
+      if (sha256(bytes) !== file.sha256 || bytes.byteLength !== file.sizeBytes) {
+        throw new ServiceError(
+          'EXPORT_REQUIRES_SUCCESSFUL_BUILD',
+          'A selected build input failed digest verification.',
+          409,
+          false,
+          { path: normalized },
+        );
+      }
+    }
+    for (const [name, digest] of Object.entries(record.artifactSha256)) {
+      const artifact = resolve(this.project.root, record.artifactDirectory, name);
+      if (sha256(await readFile(artifact)) !== digest) {
+        throw new ServiceError(
+          'EXPORT_REQUIRES_SUCCESSFUL_BUILD',
+          'A selected preview artifact failed digest verification.',
+          409,
+          false,
+          { artifact: name },
+        );
+      }
+    }
+    return { record: structuredClone(record), input, snapshotDirectory };
   }
 
   /** Requests terminal cancellation and kills the owned process tree when one is running. */
@@ -427,6 +512,32 @@ export class BuildCoordinator {
   #wasCancelled(buildId: string): boolean {
     return this.#active?.buildId === buildId && this.#active.cancelled;
   }
+}
+
+function isBuildInputManifest(value: unknown): value is BuildInputManifest {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  if (
+    typeof candidate.revision !== 'string' ||
+    typeof candidate.sourceDigest !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(candidate.sourceDigest) ||
+    typeof candidate.assetDigest !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(candidate.assetDigest) ||
+    !Array.isArray(candidate.files)
+  ) {
+    return false;
+  }
+  return candidate.files.every((file) => {
+    if (file === null || typeof file !== 'object' || Array.isArray(file)) return false;
+    const entry = file as Record<string, unknown>;
+    return (
+      typeof entry.path === 'string' &&
+      typeof entry.sha256 === 'string' &&
+      /^[a-f0-9]{64}$/.test(entry.sha256) &&
+      Number.isSafeInteger(entry.sizeBytes) &&
+      (entry.sizeBytes as number) >= 0
+    );
+  });
 }
 
 function parseDiagnostics(

@@ -36,6 +36,12 @@ intentional overlap because they layer above ordinary rows.
 The starter keeps a canonical 58 x 30 pixel toggle geometry for the original browser/native parity
 fixture. Other dimensions are ordinary theme or local C++ choices, not protocol constants.
 
+`RenderMenu` accepts optional `MenuEvents`. Its `onRendered` callback runs synchronously on the
+Dear ImGui render thread after the menu has registered the frame's diagnostics. Consumers must not
+retain references beyond the callback or recursively render the menu. The native export wraps this
+surface as `Initialize`, `Reset`, `Render`, and `Shutdown`, while leaving ownership of the ImGui
+context, backend, frame loop, and `MenuState` with the consuming application.
+
 ## Theme editing
 
 Start `npm run studio`, then use **MANAGED THEME** in the left panel to alter the starter accent or
@@ -63,10 +69,12 @@ npm run test:cpp
 . .\.tools\emsdk\emsdk_env.ps1
 .\toolchain\emscripten\build-preview.ps1
 npm run test:browser
+npm run test:phase2
 ```
 
 Use `toolchain/run-native.ps1` to inspect the native host manually. Change a component in a small,
 bounded edit; retain stable IDs for semantic-equivalent controls; then run both browser and native
 checks. The governing contracts are [RUNTIME_API.md](../../RUNTIME_API.md),
 [ANIMATION_SPEC.md](../../ANIMATION_SPEC.md), [INSPECTION_PROTOCOL.md](../../INSPECTION_PROTOCOL.md),
-and [PROJECT_FORMAT.md](../../PROJECT_FORMAT.md).
+and [PROJECT_FORMAT.md](../../PROJECT_FORMAT.md). Native packaging and the consumer contract are
+defined by [EXPORT_AND_INTEGRATION.md](../../EXPORT_AND_INTEGRATION.md).

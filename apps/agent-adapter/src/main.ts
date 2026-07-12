@@ -80,6 +80,12 @@ const routes: Readonly<Record<string, ToolRoute>> = {
     mutation: true,
     body: withoutRouting,
   },
+  export_project: {
+    method: 'POST',
+    path: (value) => `${projectPath(value)}/exports`,
+    mutation: true,
+    body: withoutRouting,
+  },
 };
 
 const baseUrl = process.env.IMGUI_STUDIO_URL ?? 'http://127.0.0.1:4173';

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+#include <imgui.h>
 #include <string_view>
 
 namespace studio_example {
@@ -67,14 +69,24 @@ struct MenuDiagnostics {
     bool toggleSettled{};
 };
 
+/// Optional consumer callbacks emitted after the shared menu has rendered one complete frame.
+///
+/// The caller owns each callable and must keep it valid for the synchronous `RenderMenu` call.
+/// Callbacks run on the Dear ImGui render thread and must not recursively render the same menu.
+struct MenuEvents final {
+    /// Receives the exact diagnostics returned by the current render call.
+    std::function<void(const MenuDiagnostics&)> onRendered{};
+};
+
 /// Restores the starter project to its canonical sample state.
 void ResetMenuState(MenuState& state) noexcept;
 
 /// Renders the shared starter menu into the current Dear ImGui frame.
 ///
 /// @param state Host-owned application and animation state.
+/// @param events Synchronous, caller-owned callback bindings; empty bindings have no overhead.
 /// @return Geometry and state produced by this exact frame.
-[[nodiscard]] MenuDiagnostics RenderMenu(MenuState& state);
+[[nodiscard]] MenuDiagnostics RenderMenu(MenuState& state, const MenuEvents& events = {});
 
 /// Returns the build-time identity of the shared starter source.
 ///

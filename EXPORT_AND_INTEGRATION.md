@@ -32,14 +32,18 @@ Export accepts:
   "buildId": "bld_01...",
   "format": "directory",
   "outputName": "neon-settings",
-  "verifyNativeParity": true
+  "verifyNativeParity": true,
+  "confirmOlderRevision": false
 }
 ```
 
-`format` is `directory` or `zip`. The service resolves all inputs from immutable build metadata. It compares the active project revision with the selected build revision:
+`format` is `directory` in the MVP. Archive output is the PRD P1 follow-up and is rejected rather
+than silently producing a nondeterministic archive. The service resolves all inputs from immutable
+build metadata. It compares the active project revision with the selected build revision:
 
 - Equal: proceed.
-- Active revision is newer: return a warning requiring explicit confirmation of the selected older build.
+- Active revision is newer: return a conflict requiring `confirmOlderRevision: true`; a confirmed
+  package records a prominent stale-source warning.
 - Build is absent, failed, cancelled, smoke-test failed, or artifact digests fail verification: reject with `EXPORT_REQUIRES_SUCCESSFUL_BUILD`.
 
 Export state is `queued`, `resolving`, `packaging`, `verifying`, `succeeded`, `failed`, or `cancelled`. A cancelled or failed export never promotes a partial directory to the requested destination. Packaging occurs in a temporary sibling directory and is atomically renamed after verification.
@@ -179,7 +183,7 @@ The MVP exports `portable` projects only. Portable source may use ordinary ImGui
 ```json
 {
   "schemaVersion": 1,
-  "project": { "name": "neon-settings", "revision": 42 },
+  "project": { "name": "neon-settings", "revision": "42" },
   "buildId": "bld_01...",
   "sourceDigest": "sha256:...",
   "studioRuntimeVersion": "0.1.0",
@@ -236,7 +240,8 @@ Consumers verify integrity with the packaged checksums. Studio verification alwa
 6. Create CMake library and clean native consumer fixture.
 7. Implement portability scan and report generation.
 8. Build exported-package parity runner and reports.
-9. Add directory and zip output plus cancellation/recovery tests.
+9. Add deterministic directory output plus failure cleanup/recovery tests. Archive output follows
+   as the PRD P1 packaging extension.
 
 ## 14. Acceptance criteria
 
