@@ -1,4 +1,22 @@
 {
   "schemaVersion": 1,
-  "references": []
+  "references": [
+    {
+      "id": "thariluneon.desktop",
+      "source": "references/images/thariluneon.png",
+      "transform": {
+        "translateMicroPx": [20000000, 32000000],
+        "scaleMillionths": 1426202,
+        "cropPx": [6, 12, 603, 375],
+        "opacityMillionths": 500000
+      },
+      "annotations": [
+        {
+          "kind": "menuRegion",
+          "rectPx": [6, 12, 603, 375],
+          "note": "Measured shadowed menu bounds used to align the reference with the 900 x 600 canonical framebuffer."
+        }
+      ]
+    }
+  ]
 }

@@ -1,5 +1,6 @@
 #include "capture.hpp"
 
+#include <array>
 #include <backends/imgui_impl_dx11.h>
 #include <backends/imgui_impl_win32.h>
 #include <cstdlib>
@@ -28,7 +29,9 @@ using Microsoft::WRL::ComPtr;
 
 constexpr UINT kViewportWidthPx = 900;
 constexpr UINT kViewportHeightPx = 600;
-constexpr int kDeterministicCaptureFrameCount = 3;
+// Capture after the menu's 300 ms entrance transition has settled. Browser parity captures also
+// seek beyond that boundary; comparing settled geometry avoids mistaking timestamps for drift.
+constexpr int kDeterministicCaptureFrameCount = 20;
 
 struct CommandLine {
     std::filesystem::path output{"out/captures/native.png"};
@@ -45,6 +48,43 @@ struct Graphics {
     ComPtr<IDXGISwapChain> swapChain;
     ComPtr<ID3D11RenderTargetView> renderTarget;
 };
+
+[[nodiscard]] std::optional<std::filesystem::path> ExecutableDirectory() {
+    // Resolve assets from the executable rather than the caller's working directory. MAX_PATH is
+    // sufficient for this fixture's generated build tree; truncation is detected and rejected.
+    std::array<wchar_t, MAX_PATH> path{};
+    const DWORD length = GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size()));
+    if (length == 0 || length >= static_cast<DWORD>(path.size())) {
+        return std::nullopt;
+    }
+    return std::filesystem::path(path.data()).parent_path();
+}
+
+[[nodiscard]] bool ConfigureProjectFonts(ImGuiIO& io,
+                                         const std::filesystem::path& executableDirectory) {
+    const std::filesystem::path mediumFontPath =
+        executableDirectory / "assets" / "fonts" / "Inter-Medium.ttf";
+    const std::filesystem::path semiboldFontPath =
+        executableDirectory / "assets" / "fonts" / "Inter-SemiBold.ttf";
+    io.Fonts->Clear();
+    ImFontConfig bodyConfig{};
+    bodyConfig.OversampleH = 2;
+    bodyConfig.OversampleV = 2;
+    ImFont* body =
+        io.Fonts->AddFontFromFileTTF(mediumFontPath.string().c_str(), 14.0F, &bodyConfig);
+    ImFontConfig emphasisConfig{};
+    emphasisConfig.OversampleH = 2;
+    emphasisConfig.OversampleV = 2;
+    ImFont* emphasis =
+        io.Fonts->AddFontFromFileTTF(semiboldFontPath.string().c_str(), 16.0F, &emphasisConfig);
+    if (body == nullptr || emphasis == nullptr) {
+        std::cerr << "Unable to load project font weights from: "
+                  << (executableDirectory / "assets" / "fonts").string() << '\n';
+        return false;
+    }
+    io.FontDefault = body;
+    return true;
+}
 
 [[nodiscard]] LRESULT CALLBACK WindowProcedure(HWND window, UINT message, WPARAM wideParameter,
                                                LPARAM longParameter) {
@@ -253,6 +293,15 @@ int main(int argumentCount, char** arguments) {
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = nullptr;
     io.LogFilename = nullptr;
+    const std::optional<std::filesystem::path> executableDirectory = ExecutableDirectory();
+    if (!executableDirectory || !ConfigureProjectFonts(io, *executableDirectory)) {
+        ImGui::DestroyContext();
+        graphics.reset();
+        DestroyWindow(window);
+        UnregisterClassW(windowClassName, instance);
+        CoUninitialize();
+        return EXIT_FAILURE;
+    }
     ImGui::StyleColorsDark();
     ImGui_ImplWin32_Init(window);
     ImGui_ImplDX11_Init(graphics->device.Get(), graphics->context.Get());

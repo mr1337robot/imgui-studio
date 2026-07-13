@@ -333,7 +333,12 @@ function renderProjectTree() {
       button.textContent = file.path;
       button.title = file.path;
       button.dataset.path = file.path;
-      button.addEventListener('click', () => void openFile(file.path));
+      const editable = /(?:\.(?:c|cc|cpp|cxx|h|hh|hpp|hxx|json|md|txt|svg)|CMakeLists\.txt)$/i.test(
+        file.path,
+      );
+      button.disabled = !editable;
+      if (!editable) button.title = `${file.path} (binary asset; inspect through the asset tools)`;
+      if (editable) button.addEventListener('click', () => void openFile(file.path));
       return button;
     }),
   );

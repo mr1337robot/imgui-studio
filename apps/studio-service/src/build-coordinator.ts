@@ -10,6 +10,15 @@ import type { BuildDiagnostic, BuildInputManifest, BuildRecord, PreviewIdentity 
 
 const maximumRawLogBytes = 1024 * 1024;
 const buildTimeoutMs = 120_000;
+// Emscripten emits a separate data package whenever project files are preloaded into its virtual
+// filesystem. Fonts are the first binary asset using that path, so the data file is as essential to
+// preview startup as the JavaScript loader and WASM module.
+const previewArtifactNames = [
+  'preview.html',
+  'preview.js',
+  'preview.wasm',
+  'preview.data',
+] as const;
 
 type SmokePreview = (artifactDirectory: string, buildId: string) => Promise<boolean>;
 
@@ -286,7 +295,7 @@ export class BuildCoordinator {
         false,
       );
     }
-    if (!['preview.html', 'preview.js', 'preview.wasm'].includes(name)) {
+    if (!previewArtifactNames.some((artifactName) => artifactName === name)) {
       throw new ServiceError(
         'FILE_NOT_FOUND',
         'The requested preview artifact does not exist.',
@@ -369,7 +378,7 @@ export class BuildCoordinator {
       await mkdir(artifactDirectory, { recursive: true });
       const artifactSha256: Record<string, string> = {};
       const artifactSizeBytes: Record<string, number> = {};
-      for (const name of ['preview.html', 'preview.js', 'preview.wasm']) {
+      for (const name of previewArtifactNames) {
         const source = resolve(generatedDirectory, name);
         const sourceStatus = await stat(source);
         if (!sourceStatus.isFile() || sourceStatus.size === 0) {

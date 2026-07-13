@@ -130,6 +130,21 @@ export async function resolveConfinedPath(
 
 /** Reads a bounded UTF-8 file and rejects malformed byte sequences instead of replacing them. */
 export async function readUtf8File(path: string, maximumBytes: number): Promise<string> {
+  const bytes = await readBoundedFile(path, maximumBytes);
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    throw new ServiceError(
+      'INVALID_REQUEST',
+      'The requested source is not valid UTF-8.',
+      400,
+      false,
+    );
+  }
+}
+
+/** Reads raw project bytes under an explicit cap for hashing and binary-asset indexing. */
+export async function readBoundedFile(path: string, maximumBytes: number): Promise<Buffer> {
   const fileStatus = await stat(path);
   if (!fileStatus.isFile()) {
     throw new ServiceError(
@@ -150,17 +165,7 @@ export async function readUtf8File(path: string, maximumBytes: number): Promise<
       },
     );
   }
-  const bytes = await readFile(path);
-  try {
-    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-  } catch {
-    throw new ServiceError(
-      'INVALID_REQUEST',
-      'The requested source is not valid UTF-8.',
-      400,
-      false,
-    );
-  }
+  return readFile(path);
 }
 
 /** Writes one service-owned state file using same-directory replace semantics. */

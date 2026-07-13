@@ -140,7 +140,7 @@ describe('Phase 2 HTTP authority', () => {
     const file = asRecord(asArray(asRecord(read.body).files)[0]);
     const sourceLines = asString(file.content).split(/\r?\n/);
     const sourceIndex = sourceLines.findIndex((line: string) =>
-      line.includes('animationDurationSeconds = 0.22F'),
+      line.includes('animationDurationSeconds = 0.16F'),
     );
     const sourceLine = asString(sourceLines[sourceIndex]);
     const sourceLineNumber = String(sourceIndex + 1);
@@ -150,7 +150,7 @@ describe('Phase 2 HTTP authority', () => {
         {
           path: 'src/studio_managed_theme.cpp',
           expectedSha256: asString(file.sha256),
-          unifiedDiff: `@@ -${sourceLineNumber},1 +${sourceLineNumber},1 @@\n-${sourceLine}\n+${sourceLine.replace('0.22F', '0.24F')}\n`,
+          unifiedDiff: `@@ -${sourceLineNumber},1 +${sourceLineNumber},1 @@\n-${sourceLine}\n+${sourceLine.replace('0.16F', '0.24F')}\n`,
         },
       ],
       reason: 'HTTP integration fixture',

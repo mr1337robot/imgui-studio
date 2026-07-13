@@ -55,7 +55,7 @@ try {
 
   const validFile = await readSource('src/studio_managed_theme.cpp', '0');
   const brokenSource = validFile.content.replace(
-    '.animationDurationSeconds = 0.22F',
+    '.animationDurationSeconds = 0.16F',
     '.animationDurationSeconds =',
   );
   await patchSource(validFile, brokenSource, '0');

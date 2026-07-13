@@ -16,6 +16,24 @@ struct MenuState {
     bool enabled{true};
     /// Enables the custom layered shadow helper for preview cards.
     bool layeredShadows{true};
+    /// Enables automatic firing while the primary aim action is held.
+    bool automaticFire{true};
+    /// Enables the quieter aim-assistance mode.
+    bool silentAim{};
+    /// Enables the weapon-specific AWP override shown in the reference menu.
+    bool overrideAwp{};
+    /// Removes weapon spread in the sample settings page.
+    bool removeSpread{true};
+    /// Removes recoil in the sample settings page.
+    bool removeRecoil{};
+    /// Enables the rapid corner-peek assistance option.
+    bool quickPeek{true};
+    /// Forces body targeting for the player subsection.
+    bool forceBodyAim{true};
+    /// Enables the secondary movement assistance option in the player subsection.
+    bool duckPeekAssist{};
+    /// Enables automatic penetration calculations.
+    bool automaticPenetration{};
     /// Controls whether the custom modal demonstration is visible.
     bool modalOpen{};
     /// Controls the deterministic toast demonstration.
@@ -31,9 +49,9 @@ struct MenuState {
     /// Selected custom tab.
     int tabIndex{};
     /// Selected custom dropdown option.
-    int qualityIndex{1};
+    int qualityIndex{};
     /// Custom integer slider value.
-    int samples{64};
+    int samples{100};
     /// Custom float slider value.
     float intensity{0.72F};
     /// Custom user-selectable accent color.

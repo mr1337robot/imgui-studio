@@ -1,8 +1,11 @@
 # Starter Component Foundation
 
-`examples/starter` is a small, intentionally editable Dear ImGui project. The same C++20 source is
-compiled into the canonical WebAssembly/WebGL2 preview and the Windows DirectX 11 parity host. It
-does not have an HTML, CSS, canvas, or JSON-renderer counterpart.
+`examples/starter` is a small, intentionally editable Dear ImGui project. Its default composition
+is a close reconstruction of the compact Thariluneon-style reference menu: a five-part header,
+breadcrumb, paired settings panels, dense custom rows, vector icons, compact animated toggles, and
+a gold-on-near-black visual system. The same C++20 source is compiled into the canonical
+WebAssembly/WebGL2 preview and the Windows DirectX 11 parity host. It does not have an HTML, CSS,
+canvas, or JSON-renderer counterpart.
 
 ## Responsibility
 
@@ -54,9 +57,13 @@ site directly in C++.
 
 Asset identifiers are logical, stable, dot-separated names. The service validates manifest schema,
 duplicate IDs, asset/attribution existence, UTF-8 SVG safety, raster magic bytes, font signatures,
-and bounded input sizes before snapshotting. The checked-in studio mark is a licensed SVG source;
-the sample's equivalent vector mark is presently drawn with ordinary `ImDrawList` circles to keep
-the core component example dependency-free.
+and bounded input sizes before snapshotting. The pinned `assets/fonts/Inter-Medium.ttf` and
+`assets/fonts/Inter-SemiBold.ttf` instances provide deterministic authored weights to both rendering
+hosts. Each host loads 14 px body and 16 px emphasis roles before backend font-atlas upload;
+exported consumers must perform the same setup before their first frame. The small target, gear,
+and chevron icons are purpose-built
+vector draw-list geometry, so they remain crisp and require no platform icon font. The checked-in
+studio mark remains a licensed SVG source for asset-pipeline examples.
 
 `studio::AddLinearGradient`, `AddLayeredShadow`, and `AddGlow` deliberately emit only ordinary
 draw-list commands. They are predictable portable approximations—not blur, bloom, or arbitrary

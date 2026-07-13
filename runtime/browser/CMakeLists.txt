@@ -24,6 +24,10 @@ target_link_options(
         "SHELL:-sALLOW_MEMORY_GROWTH=1"
         "SHELL:-sASSERTIONS=1"
         "SHELL:-sNO_EXIT_RUNTIME=1"
+        # Embed the exact authored font weights at stable virtual paths. The native fixture copies
+        # these same bytes beside its executable, so both targets build equivalent atlases.
+        "SHELL:--preload-file \"${IMGUI_STUDIO_STARTER_SOURCE_DIR}/assets/fonts/Inter-Medium.ttf\"@/assets/fonts/Inter-Medium.ttf"
+        "SHELL:--preload-file \"${IMGUI_STUDIO_STARTER_SOURCE_DIR}/assets/fonts/Inter-SemiBold.ttf\"@/assets/fonts/Inter-SemiBold.ttf"
         "SHELL:--shell-file ${CMAKE_CURRENT_SOURCE_DIR}/shell.html"
 )
 

@@ -28,6 +28,22 @@ set_target_properties(
         VS_GLOBAL_VcpkgAppLocalDeps false
 )
 
+# Runtime assets live beside the fixture executable instead of depending on the process working
+# directory. This is also representative of the export package's explicit asset deployment model.
+add_custom_command(
+    TARGET imgui_studio_native_parity
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:imgui_studio_native_parity>/assets/fonts"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${IMGUI_STUDIO_STARTER_SOURCE_DIR}/assets/fonts/Inter-Medium.ttf"
+            "$<TARGET_FILE_DIR:imgui_studio_native_parity>/assets/fonts/Inter-Medium.ttf"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${IMGUI_STUDIO_STARTER_SOURCE_DIR}/assets/fonts/Inter-SemiBold.ttf"
+            "$<TARGET_FILE_DIR:imgui_studio_native_parity>/assets/fonts/Inter-SemiBold.ttf"
+    COMMENT "Copying the starter's pinned Inter font weights"
+)
+
 if(IMGUI_STUDIO_BUILD_TESTS)
     # This smoke test verifies more than process startup: success requires a complete PNG and
     # metadata sidecar from a real DX11 render target.

@@ -569,7 +569,7 @@ export class StudioHttpServer {
           false,
         );
       }
-      const match = /^\/builds\/([^/]+)\/(preview\.(?:html|js|wasm))$/.exec(url.pathname);
+      const match = /^\/builds\/([^/]+)\/(preview\.(?:html|js|wasm|data))$/.exec(url.pathname);
       if (!match || request.method !== 'GET') {
         throw new ServiceError(
           'FILE_NOT_FOUND',

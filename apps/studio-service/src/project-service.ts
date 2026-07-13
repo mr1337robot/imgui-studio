@@ -6,6 +6,7 @@ import { applyUnifiedDiff } from './unified-diff.ts';
 import {
   canonicalizeRoot,
   normalizeProjectPath,
+  readBoundedFile,
   readUtf8File,
   resolveConfinedPath,
   sha256,
@@ -22,6 +23,9 @@ import type {
 } from './types.ts';
 
 const maximumSourceBytes = 1024 * 1024;
+// Asset validation permits fonts up to 32 MiB. Indexing must hash those raw bytes without trying
+// to decode them as editor text, while retaining the same hard upper bound.
+const maximumIndexedFileBytes = 32 * 1024 * 1024;
 const maximumPatchCount = 32;
 const maximumIndexedFiles = 2048;
 
@@ -240,8 +244,7 @@ export class ProjectService {
     const files: ProjectFile[] = [];
     for (const logicalPath of paths.sort((left, right) => left.localeCompare(right, 'en'))) {
       const confined = await resolveConfinedPath(this.root, logicalPath);
-      const content = await readUtf8File(confined.absolutePath, maximumSourceBytes);
-      const bytes = Buffer.from(content, 'utf8');
+      const bytes = await readBoundedFile(confined.absolutePath, maximumIndexedFileBytes);
       files.push({
         path: logicalPath,
         sizeBytes: bytes.byteLength,

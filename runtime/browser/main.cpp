@@ -30,6 +30,28 @@ struct Application {
     bool readySent{};
 };
 
+[[nodiscard]] bool ConfigureProjectFonts(ImGuiIO& io) {
+    // Both weights are preloaded by Emscripten at link time. Using explicit static instances keeps
+    // glyph weight deterministic: stb_truetype does not select a variable font's `wght` axis.
+    io.Fonts->Clear();
+    ImFontConfig bodyConfig{};
+    bodyConfig.OversampleH = 2;
+    bodyConfig.OversampleV = 2;
+    ImFont* body =
+        io.Fonts->AddFontFromFileTTF("/assets/fonts/Inter-Medium.ttf", 14.0F, &bodyConfig);
+    ImFontConfig emphasisConfig{};
+    emphasisConfig.OversampleH = 2;
+    emphasisConfig.OversampleV = 2;
+    ImFont* emphasis =
+        io.Fonts->AddFontFromFileTTF("/assets/fonts/Inter-SemiBold.ttf", 16.0F, &emphasisConfig);
+    if (body == nullptr || emphasis == nullptr) {
+        std::cerr << "Unable to load the project-provided Inter font weights.\n";
+        return false;
+    }
+    io.FontDefault = body;
+    return true;
+}
+
 // EM_JS creates small JavaScript functions callable from C++. Keeping protocol serialization at
 // this edge prevents browser types and postMessage details from leaking into shared project code.
 // clang-format off
@@ -240,6 +262,12 @@ int main() {
     // be resettable and must not depend on origin storage or a virtual filesystem.
     io.IniFilename = nullptr;
     io.LogFilename = nullptr;
+    if (!ConfigureProjectFonts(io)) {
+        ImGui::DestroyContext();
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return EXIT_FAILURE;
+    }
     ImGui::StyleColorsDark();
     if (!ImGui_ImplGlfw_InitForOpenGL(window, true) || !ImGui_ImplOpenGL3_Init("#version 300 es")) {
         ImGui::DestroyContext();

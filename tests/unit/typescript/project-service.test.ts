@@ -32,7 +32,7 @@ describe('canonical project revisions', () => {
     const file = required((await project.readFiles(['src/studio_managed_theme.cpp'], '0'))[0]);
     const patch = replacementPatch(
       file.content,
-      'animationDurationSeconds = 0.22F',
+      'animationDurationSeconds = 0.16F',
       'animationDurationSeconds = 0.24F',
     );
     const result = await project.applyPatches('0', [
@@ -53,7 +53,7 @@ describe('canonical project revisions', () => {
     const file = required((await project.readFiles(['src/studio_managed_theme.cpp']))[0]);
     const patch = replacementPatch(
       file.content,
-      'animationDurationSeconds = 0.22F',
+      'animationDurationSeconds = 0.16F',
       'animationDurationSeconds = 0.24F',
     );
 
@@ -79,7 +79,7 @@ describe('canonical project revisions', () => {
         expectedSha256: file.sha256,
         unifiedDiff: replacementPatch(
           file.content,
-          'animationDurationSeconds = 0.22F',
+          'animationDurationSeconds = 0.16F',
           'animationDurationSeconds = 0.24F',
         ),
       },
@@ -90,7 +90,7 @@ describe('canonical project revisions', () => {
         expectedSha256: file.sha256,
         unifiedDiff: replacementPatch(
           file.content,
-          'animationDurationSeconds = 0.22F',
+          'animationDurationSeconds = 0.16F',
           'animationDurationSeconds = 0.26F',
         ),
       },
@@ -132,6 +132,17 @@ describe('project path and encoding boundaries', () => {
 });
 
 describe('portable asset boundaries', () => {
+  it('indexes the project-provided binary fonts without UTF-8 decoding', async () => {
+    const files = await project.listFiles();
+    // Both explicit weights must survive discovery as opaque bytes. Reading either TTF as text
+    // would reject valid binary sequences before the build could construct the shared atlas.
+    for (const path of ['assets/fonts/Inter-Medium.ttf', 'assets/fonts/Inter-SemiBold.ttf']) {
+      const font = files.find((file) => file.path === path);
+      expect(font?.sizeBytes).toBeGreaterThan(100_000);
+      expect(font?.sha256).toMatch(/^[a-f0-9]{64}$/);
+    }
+  });
+
   it('accepts the checked-in licensed starter SVG during project discovery', async () => {
     await expect(project.validateAssets()).resolves.toBeUndefined();
   });
